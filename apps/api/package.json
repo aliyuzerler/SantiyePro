@@ -13,9 +13,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy"
+    "prisma:generate": "unset DATABASE_URL && prisma generate",
+    "prisma:migrate": "unset DATABASE_URL && prisma migrate dev",
+    "prisma:deploy": "unset DATABASE_URL && prisma migrate deploy"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "12.3.3",
@@ -23,18 +26,23 @@
     "@nestjs/core": "12.3.3",
     "@nestjs/platform-express": "12.3.3",
     "@nestjs/swagger": "12.1.0",
+    "@node-rs/argon2": "^2.2.2",
     "@prisma/client": "6.19.0",
     "@santiyepro/contracts": "workspace:*",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^18.0.9",
+    "jose": "^6.2.15",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@nestjs/cli": "12.0.11",
     "@nestjs/testing": "12.3.3",
     "@santiyepro/config": "workspace:*",
+    "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.1",
     "@types/node": "^24.0.0",
     "@types/supertest": "^6.0.2",
@@ -42,6 +50,7 @@
     "prisma": "6.19.0",
     "supertest": "^7.3.1",
     "tslib": "^2.8.1",
+    "tsx": "^4.23.15",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.19.0",
     "vitest": "^4.1.2"

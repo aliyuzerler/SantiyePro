@@ -5,8 +5,8 @@
 **Şantiye ve inşaat takip platformu — saha mobil uygulaması, web yönetim paneli ve API**
 
 [![CI](https://github.com/aliyuzerler/SantiyePro/actions/workflows/ci.yml/badge.svg)](https://github.com/aliyuzerler/SantiyePro/actions/workflows/ci.yml)
-![Faz](https://img.shields.io/badge/faz-01%20tamamlandı-14263D)
-![Test](https://img.shields.io/badge/test%20kapısı-47%20test-D99A2B)
+![Faz](https://img.shields.io/badge/faz-02%20tamamlandı-14263D)
+![Test](https://img.shields.io/badge/test%20kapısı-88%20test-D99A2B)
 
 *React Native + Expo · Next.js · NestJS · PostgreSQL*
 
@@ -37,6 +37,12 @@
 | Görevler | API Dokümantasyonu (Swagger) |
 | --- | --- |
 | ![Web panel görevler](docs/screenshots/panel-desktop-gorevler.png) | ![Swagger](docs/screenshots/api-swagger.png) |
+
+### Kimlik Doğrulama ve Kullanıcı Yönetimi (Faz 02)
+
+| Giriş Ekranı | Kullanıcılar & Yetkiler (gerçek veri) |
+| --- | --- |
+| ![Giriş ekranı](docs/screenshots/panel-giris.png) | ![Kullanıcılar](docs/screenshots/panel-kullanicilar.png) |
 
 ### Mobil Kabuk (Faz 01)
 
@@ -78,8 +84,8 @@ Geliştirme `prompts/README.md` içindeki faz sırasına göre yürür; her faz 
 | --- | --- | --- |
 | 00 | Monorepo iskeleti, CI, yerel PostgreSQL, health uçları | ✅ Tamamlandı |
 | 01 | Tasarım sistemi, token paritesi, web panel kabuğu + mobil kabuk | ✅ Tamamlandı |
-| 02 | Kimlik doğrulama, kullanıcılar, RBAC, denetim günlüğü | 🔄 Devam ediyor |
-| 03 | Projeler ve ekip yönetimi | ⬜ |
+| 02 | Kimlik doğrulama, kullanıcılar, RBAC, denetim günlüğü | ✅ Tamamlandı |
+| 03 | Projeler ve ekip yönetimi | 🔄 Devam ediyor |
 | 04 | Görevler | ⬜ |
 | 05 | Günlük raporlar ve medya | ⬜ |
 | 06 | Puantaj | ⬜ |
@@ -89,7 +95,7 @@ Geliştirme `prompts/README.md` içindeki faz sırasına göre yürür; her faz 
 | 10 | Raporlar, denetim görünümleri, yedekleme | ⬜ |
 | 11 | Üretim sertleştirme | ⬜ |
 
-Faz raporları: [phase-00](docs/test-reports/phase-00.md) · [phase-01](docs/test-reports/phase-01.md)
+Faz raporları: [phase-00](docs/test-reports/phase-00.md) · [phase-01](docs/test-reports/phase-01.md) · [phase-02](docs/test-reports/phase-02.md)
 
 ## 🚀 Hızlı Başlangıç
 
@@ -136,14 +142,15 @@ pnpm test        # birim + e2e testler
 pnpm build       # contracts -> api/web derlemesi
 ```
 
-**Mevcut test envanteri (Faz 01 itibarıyla — 47 test):**
+**Mevcut test envanteri (Faz 02 itibarıyla — 88 test):**
 
 | Paket | Araç | Kapsam |
 | --- | --- | --- |
 | `packages/contracts` | Vitest | Tasarım token paritesi (`tokens.json` ↔ kod) |
-| `apps/api` | Vitest | Health birim testleri + e2e (envelope, trace id, readiness) |
-| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI bileşenleri, kabuk (20 test) |
-| `apps/mobile` | Jest + RNTL | Token köprüsü, UI, kayıt menüsü, gezinme kabuğu (17 test) |
+| `apps/api` | Vitest | Health + auth birim testleri (rate limit, maskeleme, parola politikası) |
+| `apps/api` e2e | Vitest + gerçek PostgreSQL | 10 güvenlik maddesi: bootstrap, rotasyon, reuse, RBAC, IDOR, rate limit, audit |
+| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI bileşenleri, oturum akışı, kullanıcı yönetimi (30 test) |
+| `apps/mobile` | Jest + RNTL | Token köprüsü, UI, SecureStore kuralı, giriş akışı, kabuk (26 test) |
 
 Yerel tam yığın doğrulama (Docker'sız):
 
@@ -183,8 +190,11 @@ docker compose up -d --build
 
 ## 🔐 Güvenlik Notları
 
-- Şifreler **Argon2id** ile saklanır; token'lar mobilde SecureStore'da tutulur (AsyncStorage yasak).
-- Access + refresh token rotasyonu, yeniden kullanım tespiti ve denetim günlüğü Faz 02'de devreye alınır.
+- Şifreler **Argon2id** ile saklanır (OWASP parametreleri); token'lar mobilde **SecureStore**'da tutulur (AsyncStorage yasak).
+- Access token 15 dk; **refresh token rotasyonu + reuse tespiti + logout revoke** aktif (Faz 02).
+- Web refresh token HttpOnly cookie (`SameSite=Strict`; üretimde `Secure`), mobilde gövde + SecureStore.
+- Deny-by-default RBAC: global guard'lar + rol-izin matrisi (docs/06); disable edilen kullanıcının tüm oturumları anında iptal edilir.
+- Kritik olaylar (login, parola, kullanıcı/rol değişikliği) **denetim günlüğüne** maskelenmiş gövdelerle yazılır.
 - Gerçek secret'lar repoya girmez; `.env.example` yalnızca değişken adlarını içerir (`.gitignore`).
 
 ## 📄 Lisans ve Ticari Model

@@ -9,6 +9,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
 import { GlobalExceptionFilter } from './common/global-exception.filter.js';
 import { traceIdMiddleware } from './common/trace-id.middleware.js';
+import cookieParser from 'cookie-parser';
 
 
 /**
@@ -33,6 +34,9 @@ async function bootstrap(): Promise<void> {
   });
 
   app.setGlobalPrefix('api/v1');
+
+  // Refresh token cookie'si (web): HttpOnly + SameSite=Strict (docs/07).
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({

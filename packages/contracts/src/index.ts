@@ -84,6 +84,9 @@ export const readinessResponseSchema = z.object({
 });
 export type ReadinessResponse = z.infer<typeof readinessResponseSchema>;
 
+export * from './auth.js';
+export * from './rbac.js';
+
 // ---------- Ortak alanlar ----------
 
 /** Tüm kayıtlarda bulunan denetim alanları (docs/02 kabul kriterleri). */

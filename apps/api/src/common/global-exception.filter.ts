@@ -43,7 +43,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         details = body.details;
       }
 
-      code = mapStatusToCode(status);
+      // Exception gövdesinde özel code varsa (ör. RATE_LIMITED) o kazanır;
+      // yoksa status -> code eşlemesi uygulanır.
+      const bodyCode =
+        typeof body === 'object' && body !== null && 'code' in body && typeof body.code === 'string'
+          ? body.code
+          : undefined;
+      code = bodyCode ?? mapStatusToCode(status);
       if (status >= 500) {
         this.logger.error(`${req.method} ${req.url} -> ${status} (${code}) traceId=${traceId}`, undefined);
       }

@@ -9,6 +9,29 @@ jobs:
   quality-gate:
     name: lint + typecheck + test + build
     runs-on: ubuntu-latest
+
+    # Faz 02'den itibaren auth e2e testleri gerçek PostgreSQL üzerinde koşar.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: santiyepro
+          POSTGRES_PASSWORD: santiyepro
+          POSTGRES_DB: santiyepro_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U santiyepro"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://santiyepro:santiyepro@localhost:5433/santiyepro_test?schema=public
+      JWT_ACCESS_SECRET: ci-only-access-secret-0123456789abcdef
+      ADMIN_SETUP_TOKEN: ci-setup-token-0123456789abcdef
+      COOKIE_SECURE: 'false'
+
     steps:
       - uses: actions/checkout@v4
 
@@ -23,6 +46,12 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate + migrate
+        run: |
+          pnpm --filter @santiyepro/api prisma:generate
+          pnpm --filter @santiyepro/api prisma:deploy
+          pnpm --filter @santiyepro/contracts build
 
       - name: Lint
         run: pnpm lint
@@ -40,14 +69,3 @@ jobs:
           pnpm --filter @santiyepro/api test:e2e
           pnpm --filter @santiyepro/web test
           pnpm --filter @santiyepro/mobile test
-
-      # PostgreSQL bağımlı entegrasyon testleri Faz 02'den itibaren servis konteyneriyle koşulur:
-      # services:
-      #   postgres:
-      #     image: postgres:16-alpine
-      #     env:
-      #       POSTGRES_USER: santiyepro
-      #       POSTGRES_PASSWORD: santiyepro
-      #       POSTGRES_DB: santiyepro_test
-      #     options: >-
-      #       --health-cmd "pg_isready -U santiyepro" --health-interval 5s --health-retries 10

@@ -1,11 +1,14 @@
 /**
- * ŞantiyePro mobil uygulama — Faz 01: tasarım sistemi ve alt navigasyon kabuğu.
- * Giriş akışı Faz 02'de, kayıt formları Faz 05+ ile eklenir.
+ * ŞantiyePro mobil uygulama — Faz 02: oturum akışı eklendi.
+ * Oturum yoksa LoginScreen, varsa RootTabs gösterilir; token'lar SecureStore'da.
  */
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer, type Theme as NavigationTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootTabs } from './src/navigation/RootTabs';
+import { LoginScreen } from './src/screens/LoginScreen';
+import { AuthProvider, useAuth } from './src/lib/auth-context';
 import { colors } from './src/theme/tokens';
 
 const navigationTheme: NavigationTheme = {
@@ -26,13 +29,27 @@ const navigationTheme: NavigationTheme = {
   },
 };
 
+function Root() {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface[50] }}>
+        <ActivityIndicator color={colors.brand[900]} />
+      </View>
+    );
+  }
+  return user ? <RootTabs /> : <LoginScreen />;
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={navigationTheme}>
-        <StatusBar style="dark" />
-        <RootTabs />
-      </NavigationContainer>
+      <AuthProvider>
+        <NavigationContainer theme={navigationTheme}>
+          <StatusBar style="dark" />
+          <Root />
+        </NavigationContainer>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
