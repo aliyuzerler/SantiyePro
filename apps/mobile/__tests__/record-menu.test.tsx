@@ -20,9 +20,12 @@ describe('RecordMenuSheet (+ Kayıt menüsü)', () => {
     // Aktif seçeneklerde faz notu etikete eklenmez (yalnızca devre dışılar bilgi taşır)
     const attendance = screen.getByLabelText('Puantaj');
     expect(attendance.props.accessibilityState).toMatchObject({ disabled: false });
+    // Faz 07: malzeme hareketi de aktif (giriş/çıkış/transfer/iade/düzeltme)
+    const stock = screen.getByLabelText('Malzeme hareketi');
+    expect(stock.props.accessibilityState).toMatchObject({ disabled: false });
     // Sonraki fazlar hâlâ devre dışı
-    const stock = screen.getByLabelText('Malzeme hareketi (Faz 07 ile aktif)');
-    expect(stock.props.accessibilityState).toMatchObject({ disabled: true });
+    const expense = screen.getByLabelText('Gider (Faz 08 ile aktif)');
+    expect(expense.props.accessibilityState).toMatchObject({ disabled: true });
   });
 
   it('kapatma aksiyonu çalışır', async () => {

@@ -1,4 +1,4 @@
-// ŞantiyePro — Prisma şeması (Faz 06: personel ve puantaj)
+// ŞantiyePro — Prisma şeması (Faz 07: depo, malzeme ve stok hareketleri)
 //
 // Veri modeli taslağı: docs/04-data-model.md (User/Role/Permission/UserRole/
 // RolePermission/ProjectMember + oturum ve denetim tabloları).
@@ -90,6 +90,9 @@ model User {
   mediaFiles     MediaFile[]
   createdPersonnel    Personnel[]        @relation("PersonnelCreator")
   recordedAttendance  AttendanceRecord[] @relation("AttendanceRecorder")
+  createdWarehouses   Warehouse[]        @relation("WarehouseCreator")
+  createdMaterials    Material[]         @relation("MaterialCreator")
+  stockMovements      StockMovement[]    @relation("StockMovementCreator")
 
   @@index([status])
 }
@@ -121,6 +124,8 @@ model Project {
   tasks    Task[]
   dailyReports DailyReport[]
   attendanceRecords AttendanceRecord[]
+  warehouses Warehouse[]
+  stockMovements StockMovement[]
 
   @@index([status])
   @@index([name])
@@ -532,4 +537,116 @@ model OrgSettings {
   /// CustomAttendanceStatus[] — [{ key, label }] Json listesi.
   attendanceCustomStatuses Json     @default("[]")
   updatedAt                DateTime @updatedAt
+}
+
+/// Depo (Faz 07) — docs/04. projectId null = kurum genel merkezi deposu
+/// (proje kapsamı yok, tüm inventory.view sahipleri görür); proje deposu
+/// üyelik kapsamındadır. Append-only felsefe: depo pasife alınır (isActive),
+/// hareketi olan depo sert silinmez.
+model Warehouse {
+  id          String   @id @default(cuid())
+  projectId   String?
+  name        String
+  location    String?
+  isActive    Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project   Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User           @relation("WarehouseCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  movements StockMovement[] @relation("StockMovementSource")
+  incoming  StockMovement[] @relation("StockMovementTarget")
+  balances  StockBalance[]
+
+  @@index([projectId])
+  @@index([name])
+}
+
+/// Malzeme (Faz 07) — kurum genelinde tek katalog; birim ve minimum stok
+/// bilgilendirmesi buradan gelir. Pasife malzemeye yeni hareket girilmez.
+model Material {
+  id          String   @id @default(cuid())
+  /// Kurum içinde benzersiz kod (verilirse) — nullable unique, çoklu NULL serbest.
+  code        String?  @unique
+  name        String
+  category    String?
+  unit        String   @default("ADET")
+  /// Minimum stok: bakiye kartında "kritik stok" uyarısı için (DECIMAL(18,3)).
+  minStock    Decimal? @db.Decimal(18, 3)
+  isActive    Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User           @relation("MaterialCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  movements StockMovement[]
+  balances  StockBalance[]
+
+  @@index([name])
+  @@index([isActive])
+}
+
+/// Stok bakiyesi (Faz 07) — hareket kaydı asıl kaynaktır (docs/04); bu tablo
+/// transaction içi koşullu atomik UPDATE ile güncellenen okuma modelidir.
+/// Negatif stok engeli buradan gelir: UPDATE ... WHERE quantity >= miktar —
+/// eşzamanlı çıkışta predicate yeniden değerlendirilir, yetersizse satır
+/// güncellenmez (0 row) ve hareket 409 ile reddedilir.
+model StockBalance {
+  id             String   @id @default(cuid())
+  materialId     String
+  warehouseId    String
+  quantity       Decimal  @default(0) @db.Decimal(18, 3)
+  lastMovementAt DateTime @default(now())
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, warehouseId])
+  @@index([materialId])
+  @@index([warehouseId])
+}
+
+/// Stok hareketi (Faz 07) — APPEND-ONLY: update/delete API'si yoktur
+/// (docs/04 "hareket kaydı asıl kaynaktır", docs/02 iş kayıtları felsefesi).
+/// Düzeltme yalnızca REVERSAL ile: reversesMovementId unique → bir hareket
+/// en fazla bir kez ters kaydedilir; REVERSAL'ın REVERSAL'ı yoktur.
+/// TRANSFER tek satırdır: warehouseId kaynak, targetWarehouseId hedef;
+/// bakiye etkileri tek DB transaction'da uygulanır (docs/05).
+/// quantity kanonik ondalık string semantiğiyle DECIMAL(18,3) saklanır;
+/// ADJUSTMENT işaretli olabilir, diğer tipler pozitiftir.
+model StockMovement {
+  id                 String   @id @default(cuid())
+  materialId         String
+  warehouseId        String
+  /// TRANSFER hedef deposu; diğer tiplerde null.
+  targetWarehouseId  String?
+  projectId          String?
+  type               String
+  quantity           Decimal  @db.Decimal(18, 3)
+  unitCost           Decimal? @db.Decimal(18, 4)
+  referenceType      String?
+  referenceId        String?
+  note               String?
+  occurredAt         DateTime @default(now())
+  createdById        String
+  /// Bu hareketin ters kaydı olduğu orijinal hareket (yalnızca REVERSAL'da).
+  reversesMovementId String?  @unique
+  /// Çevrimdışı kuyruk idempotency anahtarı — unique: tekrar gönderim stok
+  /// ikinci kez düşürmez, mevcut hareket döner (docs/09).
+  clientMutationId   String?  @unique
+  createdAt          DateTime @default(now())
+
+  material        Material       @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  warehouse       Warehouse      @relation("StockMovementSource", fields: [warehouseId], references: [id], onDelete: Restrict)
+  targetWarehouse Warehouse?     @relation("StockMovementTarget", fields: [targetWarehouseId], references: [id], onDelete: Restrict)
+  project         Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy       User           @relation("StockMovementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  reverses        StockMovement? @relation("StockReversal", fields: [reversesMovementId], references: [id], onDelete: Restrict)
+  reversedBy      StockMovement? @relation("StockReversal")
+
+  @@index([materialId, warehouseId, occurredAt])
+  @@index([projectId, occurredAt])
+  @@index([warehouseId, occurredAt])
+  @@index([type, occurredAt])
 }

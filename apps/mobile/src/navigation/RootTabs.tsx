@@ -11,6 +11,7 @@ import { TasksScreen } from '../screens/TasksScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { DailyReportFormScreen } from '../screens/DailyReportFormScreen';
 import { AttendanceScreen } from '../screens/AttendanceScreen';
+import { StockScreen } from '../screens/StockScreen';
 import { RecordMenuSheet, RECORD_OPTIONS } from '../components/RecordMenuSheet';
 import { colors, touch } from '../theme/tokens';
 
@@ -28,6 +29,7 @@ export function RootTabs() {
   const [recordMenuOpen, setRecordMenuOpen] = useState(false);
   const [reportFormOpen, setReportFormOpen] = useState(false);
   const [attendanceOpen, setAttendanceOpen] = useState(false);
+  const [stockOpen, setStockOpen] = useState(false);
 
   const tabBar = (props: BottomTabBarProps) => (
     <View style={styles.tabBarWrap}>
@@ -76,6 +78,7 @@ export function RootTabs() {
           setRecordMenuOpen(false);
           if (option.key === 'daily-report') setReportFormOpen(true);
           if (option.key === 'attendance') setAttendanceOpen(true);
+          if (option.key === 'stock-movement') setStockOpen(true);
         }}
       />
       {reportFormOpen && (
@@ -86,6 +89,11 @@ export function RootTabs() {
       {attendanceOpen && (
         <View style={StyleSheet.absoluteFill} testID="attendance-screen-overlay">
           <AttendanceScreen onClose={() => setAttendanceOpen(false)} />
+        </View>
+      )}
+      {stockOpen && (
+        <View style={StyleSheet.absoluteFill} testID="stock-screen-overlay">
+          <StockScreen onClose={() => setStockOpen(false)} />
         </View>
       )}
     </View>

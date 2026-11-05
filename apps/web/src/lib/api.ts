@@ -500,3 +500,125 @@ export const attendanceApi = {
       { token },
     ),
 };
+
+// ---------- Depo, malzeme ve stok hareketleri (Faz 07) ----------
+
+import type {
+  MaterialDto,
+  StockBalanceDto,
+  StockMovementDto,
+  WarehouseDto,
+} from '@santiyepro/contracts';
+export type { MaterialDto, StockBalanceDto, StockMovementDto, WarehouseDto };
+
+export interface InventoryListResponse<T> {
+  data: T[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface CreateMovementInput {
+  type: 'IN' | 'OUT' | 'TRANSFER' | 'RETURN' | 'ADJUSTMENT';
+  materialId: string;
+  warehouseId: string;
+  targetWarehouseId?: string | null;
+  projectId?: string | null;
+  quantity: string;
+  unit?: string;
+  unitCost?: string | null;
+  referenceType?: 'PURCHASE' | 'DAILY_REPORT' | 'TASK' | 'OTHER';
+  referenceId?: string;
+  note?: string;
+  occurredAt?: string;
+  clientMutationId?: string;
+}
+
+export interface MovementListParams {
+  projectId?: string;
+  warehouseId?: string;
+  materialId?: string;
+  type?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export const inventoryApi = {
+  // Depolar
+  warehouses: (token: string, params: { projectId?: string; kurumOnly?: string; search?: string } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+    qs.set('pageSize', '100');
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.kurumOnly) qs.set('kurumOnly', params.kurumOnly);
+    if (params.search) qs.set('search', params.search);
+    return apiFetch<InventoryListResponse<WarehouseDto>>(`/inventory/warehouses?${qs.toString()}`, { token });
+  },
+  createWarehouse: (
+    token: string,
+    input: { projectId?: string | null; name: string; location?: string },
+  ) => apiFetch<WarehouseDto>('/inventory/warehouses', { method: 'POST', body: input, token }),
+  updateWarehouse: (token: string, id: string, patch: { name?: string; location?: string | null; isActive?: boolean }) =>
+    apiFetch<WarehouseDto>(`/inventory/warehouses/${id}`, { method: 'PATCH', body: patch, token }),
+
+  // Malzemeler
+  materials: (token: string, params: { search?: string; isActive?: string } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+    qs.set('pageSize', '100');
+    if (params.search) qs.set('search', params.search);
+    if (params.isActive) qs.set('isActive', params.isActive);
+    return apiFetch<InventoryListResponse<MaterialDto>>(`/inventory/materials?${qs.toString()}`, { token });
+  },
+  createMaterial: (
+    token: string,
+    input: { code?: string; name: string; category?: string; unit?: string; minStock?: string },
+  ) => apiFetch<MaterialDto>('/inventory/materials', { method: 'POST', body: input, token }),
+  updateMaterial: (
+    token: string,
+    id: string,
+    patch: { code?: string | null; name?: string; category?: string | null; unit?: string; minStock?: string | null; isActive?: boolean },
+  ) => apiFetch<MaterialDto>(`/inventory/materials/${id}`, { method: 'PATCH', body: patch, token }),
+
+  // Bakiye (stok kartları)
+  balances: (
+    token: string,
+    params: { warehouseId?: string; materialId?: string; projectId?: string; search?: string; lowStock?: string } = {},
+  ) => {
+    const qs = new URLSearchParams();
+    if (params.warehouseId) qs.set('warehouseId', params.warehouseId);
+    if (params.materialId) qs.set('materialId', params.materialId);
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.search) qs.set('search', params.search);
+    if (params.lowStock) qs.set('lowStock', params.lowStock);
+    return apiFetch<InventoryListResponse<StockBalanceDto>>(`/inventory/balances?${qs.toString()}`, { token });
+  },
+
+  // Hareketler
+  movements: (token: string, params: MovementListParams = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', String(params.pageSize ?? 20));
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.warehouseId) qs.set('warehouseId', params.warehouseId);
+    if (params.materialId) qs.set('materialId', params.materialId);
+    if (params.type) qs.set('type', params.type);
+    if (params.dateFrom) qs.set('dateFrom', params.dateFrom);
+    if (params.dateTo) qs.set('dateTo', params.dateTo);
+    if (params.search) qs.set('search', params.search);
+    return apiFetch<InventoryListResponse<StockMovementDto>>(`/inventory/movements?${qs.toString()}`, { token });
+  },
+  createMovement: (token: string, input: CreateMovementInput) =>
+    apiFetch<{ movement: StockMovementDto; replayed: boolean }>('/inventory/movements', {
+      method: 'POST',
+      body: input,
+      token,
+    }),
+  reverseMovement: (token: string, id: string, reason: string) =>
+    apiFetch<{ movement: StockMovementDto }>(`/inventory/movements/${id}/reverse`, {
+      method: 'POST',
+      body: { reason },
+      token,
+    }),
+};

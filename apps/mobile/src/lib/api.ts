@@ -392,3 +392,71 @@ export const attendanceApi = {
     input: { projectId: string; workDate: string; shiftKey?: string; status: string; personnelIds: string[]; confirm: true },
   ) => request<BulkAttendancePreviewResponse>('/attendance/bulk', { method: 'POST', body: input, token }),
 };
+
+// ---------- Depo, malzeme ve stok hareketleri (Faz 07) ----------
+
+import type { MaterialDto, StockBalanceDto, StockMovementDto, WarehouseDto } from '@santiyepro/contracts';
+export type { MaterialDto, StockBalanceDto, StockMovementDto, WarehouseDto };
+
+export interface InventoryListResponse<T> {
+  data: T[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface CreateMovementInput {
+  type: 'IN' | 'OUT' | 'TRANSFER' | 'RETURN' | 'ADJUSTMENT';
+  materialId: string;
+  warehouseId: string;
+  targetWarehouseId?: string | null;
+  projectId?: string | null;
+  quantity: string;
+  unit?: string;
+  unitCost?: string | null;
+  referenceType?: 'PURCHASE' | 'DAILY_REPORT' | 'TASK' | 'OTHER';
+  referenceId?: string;
+  note?: string;
+  occurredAt?: string;
+  clientMutationId?: string;
+}
+
+export const inventoryApi = {
+  warehouses: (token: string, params: { projectId?: string } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+    qs.set('pageSize', '100');
+    if (params.projectId) qs.set('projectId', params.projectId);
+    return request<InventoryListResponse<WarehouseDto>>(`/inventory/warehouses?${qs.toString()}`, { token });
+  },
+  materials: (token: string, params: { search?: string; isActive?: string } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+    qs.set('pageSize', '100');
+    if (params.search) qs.set('search', params.search);
+    if (params.isActive) qs.set('isActive', params.isActive);
+    return request<InventoryListResponse<MaterialDto>>(`/inventory/materials?${qs.toString()}`, { token });
+  },
+  balances: (
+    token: string,
+    params: { warehouseId?: string; materialId?: string; projectId?: string } = {},
+  ) => {
+    const qs = new URLSearchParams();
+    if (params.warehouseId) qs.set('warehouseId', params.warehouseId);
+    if (params.materialId) qs.set('materialId', params.materialId);
+    if (params.projectId) qs.set('projectId', params.projectId);
+    return request<InventoryListResponse<StockBalanceDto>>(`/inventory/balances?${qs.toString()}`, { token });
+  },
+  movements: (token: string, params: { warehouseId?: string; materialId?: string; page?: number; pageSize?: number } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', String(params.pageSize ?? 20));
+    if (params.warehouseId) qs.set('warehouseId', params.warehouseId);
+    if (params.materialId) qs.set('materialId', params.materialId);
+    return request<InventoryListResponse<StockMovementDto>>(`/inventory/movements?${qs.toString()}`, { token });
+  },
+  createMovement: (token: string, input: CreateMovementInput) =>
+    request<{ movement: StockMovementDto; replayed: boolean }>('/inventory/movements', {
+      method: 'POST',
+      body: input,
+      token,
+    }),
+};
