@@ -1,0 +1,15 @@
+{
+  "name": "@santiyepro/web-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ŞantiyePro web paneli — Playwright canlı E2E testleri (her faz sonunda koşulan standart; docs/process/canli-test-standardi.md)",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.2"
+  }
+}

@@ -151,9 +151,15 @@ pnpm lint        # tüm workspace
 pnpm typecheck   # tüm workspace
 pnpm test        # birim + e2e testler
 pnpm build       # contracts -> api/web derlemesi
+pnpm e2e         # Playwright CANLI E2E (gerçek API + gerçek PostgreSQL + tarayıcı)
 ```
 
-**Mevcut test envanteri (Faz 03 itibarıyla — 122 test):**
+**Canlı E2E standardı (Faz 03 kapanışından itibaren):** `apps/web-e2e` paketi her faz
+kapanmadan **gerçek ortamda** koşar — gerçek UI girişi, menüdeki 11 modül sayfası,
+mobil drawer akışı ve fazın kendi kritik akışı (gerçek mock'suz API + PostgreSQL).
+Ayrıntılar: [`docs/process/canli-test-standardi.md`](docs/process/canli-test-standardi.md).
+
+**Mevcut test envanteri (Faz 03 itibarıyla — 122 test + canlı E2E):**
 
 | Paket | Araç | Kapsam |
 | --- | --- | --- |
@@ -162,6 +168,7 @@ pnpm build       # contracts -> api/web derlemesi
 | `apps/api` e2e | Vitest + gerçek PostgreSQL | 10 güvenlik maddesi + 16 proje/şantiye maddesi: benzersiz kod, kapsam/IDOR, pagination, arşiv koruması, audit |
 | `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI bileşenleri, oturum, kullanıcı yönetimi, proje listesi/detay (37 test) |
 | `apps/mobile` | Jest + RNTL | Token köprüsü, UI, SecureStore kuralı, giriş akışı, kabuk, proje listesi + sekmeli detay (37 test) |
+| `apps/web-e2e` | **Playwright (canlı)** | API sağlık (gerçek DB), UI girişi + 11 modül sayfası, mobil drawer, faz kritik akışı |
 
 Yerel tam yığın doğrulama (Docker'sız):
 

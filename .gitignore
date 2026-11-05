@@ -39,3 +39,7 @@ pnpm-debug.log*
 
 # Docker volume verileri
 infra/docker/data/
+
+# Playwright E2E çıktıları
+apps/web-e2e/test-results/
+apps/web-e2e/playwright-report/

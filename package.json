@@ -29,6 +29,7 @@
     "test": "pnpm -r test",
     "local:pg": "node infra/scripts/local-postgres.mjs up",
     "local:pg:stop": "node infra/scripts/local-postgres.mjs stop",
-    "local:pg:reset": "node infra/scripts/local-postgres.mjs reset"
+    "local:pg:reset": "node infra/scripts/local-postgres.mjs reset",
+    "e2e": "pnpm local:pg && pnpm --filter @santiyepro/web-e2e test:e2e"
   }
 }

@@ -51,12 +51,17 @@ function run(cmd, args, opts = {}) {
   execFileSync(cmd, args, { stdio: 'inherit', ...opts });
 }
 
+/**
+ * pg_ctl status ile kontrol edilir — embedded-postgres paketi yalnızca
+ * postgres/initdb/pg_ctl binary'lerini içerir; pg_isready/psql yoktur.
+ */
 function isUp() {
-  const result = spawnSync(bin('pg_isready'), ['-h', '127.0.0.1', '-p', String(PORT)], { encoding: 'utf8' });
+  if (!existsSync(join(dataDir, 'PG_VERSION'))) return false;
+  const result = spawnSync(bin('pg_ctl'), ['-D', dataDir, 'status'], { encoding: 'utf8' });
   return result.status === 0;
 }
 
-function up() {
+async function up() {
   mkdirSync(pgDir, { recursive: true });
 
   if (isUp()) {
@@ -97,24 +102,33 @@ function up() {
     'start',
   ]);
 
-  // Veritabanını oluştur (zaten varsa atla)
-  const existsResult = spawnSync(
-    bin('psql'),
-    ['-h', '127.0.0.1', '-p', String(PORT), '-U', USER, '-d', 'postgres', '-tAc',
-      `SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'`],
-    { env: { ...process.env, PGPASSWORD: PASSWORD }, encoding: 'utf8' },
-  );
-  if (!existsResult.stdout || !existsResult.stdout.includes('1')) {
-    run(bin('createdb'), ['-h', '127.0.0.1', '-p', String(PORT), '-U', USER, DB_NAME], {
-      env: { ...process.env, PGPASSWORD: PASSWORD },
-    });
-    console.log(`Veritabanı oluşturuldu: ${DB_NAME}`);
-  } else {
-    console.log(`Veritabanı mevcut: ${DB_NAME}`);
-  }
+  // Veritabanını oluştur (zaten varsa atla) — SQL için apps/api'nin Prisma istemcisi kullanılır
+  await ensureDatabase();
 
   printConnString();
   console.log(`Log dosyası: ${logFile}`);
+}
+
+/** pg_database denetimi + CREATE DATABASE (psql olmadan). */
+async function ensureDatabase() {
+  const { createRequire } = await import('node:module');
+  const requireFromApi = createRequire(join(repoRoot, 'apps', 'api', 'package.json'));
+  const { PrismaClient } = requireFromApi('@prisma/client');
+  const adminUrl = `postgresql://${encodeURIComponent(USER)}:${encodeURIComponent(PASSWORD)}@127.0.0.1:${PORT}/postgres`;
+  const prisma = new PrismaClient({ datasources: { db: { url: adminUrl } } });
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'`,
+    );
+    if (!Array.isArray(rows) || rows.length === 0) {
+      await prisma.$executeRawUnsafe(`CREATE DATABASE "${DB_NAME}"`);
+      console.log(`Veritabanı oluşturuldu: ${DB_NAME}`);
+    } else {
+      console.log(`Veritabanı mevcut: ${DB_NAME}`);
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 function printConnString() {
@@ -145,7 +159,7 @@ function reset() {
 }
 
 const command = process.argv[2] ?? 'up';
-if (command === 'up') up();
+if (command === 'up') await up();
 else if (command === 'stop') stop();
 else if (command === 'reset') reset();
 else {
