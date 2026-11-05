@@ -1,6 +1,8 @@
+import Link from 'next/link';
 import { AppShell } from '@/components/shell/AppShell';
 import { PageHeader } from '@/components/shell/PageHeader';
 import { SectionCard } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/States';
 
 export default function OverviewPage() {
@@ -12,10 +14,20 @@ export default function OverviewPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Proje ilerleme durumu" description="Gerçek proje verisi bağlandığında dolar">
+        <SectionCard
+          title="Proje ilerleme durumu"
+          description="İlerleme yüzdesi yalnızca gerçek saha verisiyle hesaplanır (Faz 10 raporlar)"
+          action={
+            <Link href="/projeler">
+              <Button variant="secondary" className="min-h-9 px-3 py-1 text-xs">
+                Projelere Git
+              </Button>
+            </Link>
+          }
+        >
           <EmptyState
-            title="Henüz proje yok"
-            description="Proje ve şantiye modülü Faz 03'te eklenecek. O fazdan sonra bu panelde proje ilerlemeleri görünecek."
+            title="İlerleme verisi henüz hesaplanmıyor"
+            description="Proje ve şantiye modülü Faz 03'te aktif. İlerleme yüzdesi, günlük rapor ve hakediş verisi biriktiğinde bu panelde gerçek veriyle gösterilecek."
           />
         </SectionCard>
 

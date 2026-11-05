@@ -16,8 +16,13 @@ export interface AuthenticatedUser {
 }
 
 export const CurrentUser = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): AuthenticatedUser | undefined => {
-    return ctx.switchToHttp().getRequest().user as AuthenticatedUser | undefined;
+  (data: unknown, ctx: ExecutionContext): unknown => {
+    const user = ctx.switchToHttp().getRequest().user as AuthenticatedUser | undefined;
+    // Alan adı verilirse yalnızca o alan döner: @CurrentUser('userId') → string.
+    if (data !== undefined && data !== null && data !== '' && user) {
+      return user[data as keyof AuthenticatedUser];
+    }
+    return user;
   },
 );
 

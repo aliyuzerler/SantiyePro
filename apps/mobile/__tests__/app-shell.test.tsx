@@ -27,7 +27,7 @@ describe('App (mobil kabuk)', () => {
     );
 
     // Ana sayfa boş durumları dürüst mesajlarla görünür
-    expect(await screen.findByText('Atandığım projeler')).toBeTruthy();
+    expect(await screen.findByText('Atandığım aktif projeler')).toBeTruthy();
 
     // Alt navigasyon giriş noktaları
     expect(screen.getByLabelText('Ana Sayfa')).toBeTruthy();

@@ -21,6 +21,19 @@ enum UserStatus {
   DISABLED
 }
 
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum SiteStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model User {
   id           String     @id @default(cuid())
   fullName     String
@@ -38,8 +51,54 @@ model User {
   passwordResets PasswordResetToken[]
   auditLogs      AuditLog[]
   projectMembers ProjectMember[]
+  managedProjects Project[]    @relation("ProjectManager")
 
   @@index([status])
+}
+
+/// Proje — kurulum içinde benzersiz kod; silme yok, arşiv = ARCHIVED status
+/// (bağlı kayıtlara dokunulmaz; prompts/phase-03-development.md).
+/// Tarih alanları PostgreSQL DATE kolonunda saklanır (timezone-safe).
+model Project {
+  id             String        @id @default(cuid())
+  code           String        @unique
+  name           String
+  clientName     String?
+  description    String?
+  address        String?
+  startDate      DateTime?     @db.Date
+  plannedEndDate DateTime?     @db.Date
+  actualEndDate  DateTime?     @db.Date
+  /// DECIMAL(18,2) — API'de decimal string olarak taşınır (docs/05).
+  contractAmount Decimal?      @db.Decimal(18, 2)
+  currency       String        @default("TRY")
+  status         ProjectStatus @default(PLANNING)
+  managerId      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  manager  User?           @relation("ProjectManager", fields: [managerId], references: [id], onDelete: SetNull)
+  members  ProjectMember[]
+  sites    Site[]
+
+  @@index([status])
+  @@index([name])
+}
+
+/// Şantiye/alan — yalnızca doğru projeye bağlanır; ad proje içinde benzersizdir.
+model Site {
+  id        String     @id @default(cuid())
+  projectId String
+  name      String
+  address   String?
+  status    SiteStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@index([projectId])
 }
 
 model Role {
@@ -85,20 +144,23 @@ model RolePermission {
 }
 
 /// Proje kapsamı kontrolü: kullanıcının hangi projede hangi rolle çalıştığı.
-/// Project modeli Faz 03'te eklenince projectId'ye FK eklenecek (geçici olarak String).
+/// FIRM_ADMIN tüm projelere erişir; diğer roller yalnızca üyesi olduğu projeleri
+/// görür (kapsam dışı proje 404 döner — IDOR koruması, docs/06).
 model ProjectMember {
   id        String   @id @default(cuid())
   projectId String
   userId    String
-  /// Proje içi rol anahtarı (ör. MANAGER, CHIEF, WORKER) — Faz 03'te doldurulur.
-  scopeRole String   @default("MEMBER")
+  /// Proje içi rol anahtarı (MANAGER, CHIEF, TECH_OFFICE, WAREHOUSE, ACCOUNTING, WORKER).
+  scopeRole String   @default("WORKER")
   createdAt DateTime @default(now())
   assignedBy String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@index([projectId])
+  @@index([userId])
 }
 
 /// Oturum yenileme token'ları — yalnızca hash saklanır.

@@ -15,5 +15,13 @@ export const Plus = Icon;
 export const CloudOff = Icon;
 export const FileText = Icon;
 export const Server = Icon;
+export const Search = Icon;
+export const ChevronLeft = Icon;
+export const MapPin = Icon;
+export const Users = Icon;
+export const Archive = Icon;
+export const Pencil = Icon;
+export const X = Icon;
+export const ClipboardList = Icon;
 
 export default Icon;

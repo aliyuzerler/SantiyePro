@@ -7,6 +7,9 @@
  * - Loglarda token/parola bulunmaz.
  */
 import { tokenStorage } from './secure-store';
+import type { ProjectDto, ProjectDetailDto, SiteDto, ProjectMemberDto, UserDto } from '@santiyepro/contracts';
+
+export type { ProjectDto, ProjectDetailDto, SiteDto, ProjectMemberDto, UserDto };
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
@@ -111,4 +114,64 @@ export const authApi = {
     }
     await tokenStorage.clear();
   },
+};
+
+// ---------- Projeler ve şantiyeler (Faz 03) ----------
+
+export interface ProjectsListResponse {
+  data: ProjectDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface ProjectListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
+  sort?: 'createdAt' | 'name' | 'code';
+  order?: 'asc' | 'desc';
+}
+
+export const projectsApi = {
+  /** Kapsamlı proje listesi — sunucu yalnızca erişim yetkisi olan projeleri döner. */
+  list: async (token: string, params: ProjectListParams = {}): Promise<ProjectsListResponse> => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', String(params.pageSize ?? 20));
+    if (params.search) qs.set('search', params.search);
+    if (params.status) qs.set('status', params.status);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.order) qs.set('order', params.order);
+    return request<ProjectsListResponse>(`/projects?${qs.toString()}`, { token });
+  },
+
+  get: (token: string, id: string) => request<ProjectDetailDto>(`/projects/${id}`, { token }),
+
+  create: (
+    token: string,
+    input: { code: string; name: string; clientName?: string; startDate?: string; plannedEndDate?: string; contractAmount?: string },
+  ) => request<ProjectDto>('/projects', { method: 'POST', body: input, token }),
+
+  update: (token: string, id: string, patch: Record<string, unknown>) =>
+    request<ProjectDto>(`/projects/${id}`, { method: 'PATCH', body: patch, token }),
+
+  createSite: (token: string, projectId: string, input: { name: string; address?: string }) =>
+    request<SiteDto>(`/projects/${projectId}/sites`, { method: 'POST', body: input, token }),
+
+  updateSite: (token: string, projectId: string, siteId: string, patch: Record<string, unknown>) =>
+    request<SiteDto>(`/projects/${projectId}/sites/${siteId}`, { method: 'PATCH', body: patch, token }),
+
+  addMember: (token: string, projectId: string, input: { userId: string; scopeRole: string }) =>
+    request<ProjectMemberDto>(`/projects/${projectId}/members`, { method: 'POST', body: input, token }),
+
+  updateMember: (token: string, projectId: string, memberId: string, patch: { scopeRole: string }) =>
+    request<ProjectMemberDto>(`/projects/${projectId}/members/${memberId}`, { method: 'PATCH', body: patch, token }),
+
+  removeMember: (token: string, projectId: string, memberId: string) =>
+    request<void>(`/projects/${projectId}/members/${memberId}`, { method: 'DELETE', token }),
+};
+
+/** Üye ekleme diyaloğu için kullanıcı listesi (user.view izni gerektirir). */
+export const usersApi = {
+  list: (token: string) => request<{ data: UserDto[] }>('/users?page=1&pageSize=100', { token }),
 };

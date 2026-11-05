@@ -49,8 +49,8 @@ jobs:
 
       - name: Prisma generate + migrate
         run: |
-          pnpm --filter @santiyepro/api prisma:generate
-          pnpm --filter @santiyepro/api prisma:deploy
+          pnpm --filter @santiyepro/api exec prisma generate
+          pnpm --filter @santiyepro/api exec prisma migrate deploy
           pnpm --filter @santiyepro/contracts build
 
       - name: Lint

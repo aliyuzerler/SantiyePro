@@ -52,6 +52,17 @@
 
 > Mobil kabuğun tarayıcı önizlemesidir; asıl hedef Expo ile derlenen React Native uygulamasıdır (`apps/mobile`). Ekran görüntüleri `docs/screenshots/` altında sürüm kontrolünde tutulur.
 
+### Projeler ve Şantiyeler (Faz 03)
+
+| Proje Listesi (gerçek veri) | Proje Detayı — aktif proje bağlamı |
+| --- | --- |
+| ![Proje listesi](docs/screenshots/faz03-panel-projeler.png) | ![Proje detayı](docs/screenshots/faz03-panel-detay.png) |
+
+- Proje oluşturma/düzenleme, kurallı durum geçişleri (arşivleme dahil), sorumlu atama.
+- Şantiye yönetimi proje içinde; üye yönetimi kapsam rolüyle (MANAGER, CHIEF, …).
+- Kapsamlı liste: FIRM_ADMIN tümünü, diğerleri yalnızca üye olduğu projeleri görür (IDOR → 404).
+- Listede sayfalama, arama, durum filtresi ve sıralama; mobilde sekmeli detay.
+
 ## 🧱 Mimari
 
 ```text
@@ -142,15 +153,15 @@ pnpm test        # birim + e2e testler
 pnpm build       # contracts -> api/web derlemesi
 ```
 
-**Mevcut test envanteri (Faz 02 itibarıyla — 88 test):**
+**Mevcut test envanteri (Faz 03 itibarıyla — 122 test):**
 
 | Paket | Araç | Kapsam |
 | --- | --- | --- |
 | `packages/contracts` | Vitest | Tasarım token paritesi (`tokens.json` ↔ kod) |
 | `apps/api` | Vitest | Health + auth birim testleri (rate limit, maskeleme, parola politikası) |
-| `apps/api` e2e | Vitest + gerçek PostgreSQL | 10 güvenlik maddesi: bootstrap, rotasyon, reuse, RBAC, IDOR, rate limit, audit |
-| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI bileşenleri, oturum akışı, kullanıcı yönetimi (30 test) |
-| `apps/mobile` | Jest + RNTL | Token köprüsü, UI, SecureStore kuralı, giriş akışı, kabuk (26 test) |
+| `apps/api` e2e | Vitest + gerçek PostgreSQL | 10 güvenlik maddesi + 16 proje/şantiye maddesi: benzersiz kod, kapsam/IDOR, pagination, arşiv koruması, audit |
+| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI bileşenleri, oturum, kullanıcı yönetimi, proje listesi/detay (37 test) |
+| `apps/mobile` | Jest + RNTL | Token köprüsü, UI, SecureStore kuralı, giriş akışı, kabuk, proje listesi + sekmeli detay (37 test) |
 
 Yerel tam yığın doğrulama (Docker'sız):
 

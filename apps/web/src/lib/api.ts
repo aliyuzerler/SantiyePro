@@ -7,6 +7,9 @@
  * - Hata yanıtları contracts zarfından çözülür: { error: { code, message, details? }, traceId }.
  */
 import type { UserDto } from '@santiyepro/contracts';
+import type { ProjectDto, ProjectDetailDto, SiteDto, ProjectMemberDto } from '@santiyepro/contracts';
+
+export type { UserDto, ProjectDto, ProjectDetailDto, SiteDto, ProjectMemberDto };
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
 
@@ -101,7 +104,7 @@ export interface RoleDto {
 }
 
 export const usersApi = {
-  list: (token: string, page = 1) => apiFetch<UsersListResponse>(`/users?page=${page}&pageSize=20`, { token }),
+  list: (token: string, page = 1) => apiFetch<UsersListResponse>(`/users?page=${page}&pageSize=100`, { token }),
   roles: (token: string) => apiFetch<{ data: RoleDto[] }>('/roles', { token }),
   create: (
     token: string,
@@ -109,4 +112,81 @@ export const usersApi = {
   ) => apiFetch<UserDto>('/users', { method: 'POST', body: input, token }),
   update: (token: string, id: string, patch: { status?: 'ACTIVE' | 'DISABLED'; roles?: string[]; fullName?: string }) =>
     apiFetch<UserDto>(`/users/${id}`, { method: 'PATCH', body: patch, token }),
+};
+
+// ---------- Projeler ve şantiyeler (Faz 03) ----------
+
+export interface ProjectsListResponse {
+  data: ProjectDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface ProjectListParams {
+  page?: number;
+  search?: string;
+  status?: string;
+  sort?: 'createdAt' | 'name' | 'code';
+  order?: 'asc' | 'desc';
+}
+
+export interface MemberInput {
+  userId: string;
+  scopeRole: string;
+}
+
+export const projectsApi = {
+  list: (token: string, params: ProjectListParams = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', '20');
+    if (params.search) qs.set('search', params.search);
+    if (params.status) qs.set('status', params.status);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.order) qs.set('order', params.order);
+    return apiFetch<ProjectsListResponse>(`/projects?${qs.toString()}`, { token });
+  },
+  get: (token: string, id: string) => apiFetch<ProjectDetailDto>(`/projects/${id}`, { token }),
+  create: (
+    token: string,
+    input: {
+      code: string;
+      name: string;
+      clientName?: string;
+      description?: string;
+      address?: string;
+      startDate?: string;
+      plannedEndDate?: string;
+      contractAmount?: string;
+      managerId?: string;
+    },
+  ) => apiFetch<ProjectDto>('/projects', { method: 'POST', body: input, token }),
+  update: (
+    token: string,
+    id: string,
+    patch: {
+      name?: string;
+      clientName?: string | null;
+      description?: string | null;
+      address?: string | null;
+      startDate?: string | null;
+      plannedEndDate?: string | null;
+      actualEndDate?: string | null;
+      contractAmount?: string | null;
+      status?: string;
+      managerId?: string | null;
+    },
+  ) => apiFetch<ProjectDto>(`/projects/${id}`, { method: 'PATCH', body: patch, token }),
+  sites: (token: string, projectId: string) => apiFetch<{ data: SiteDto[] }>(`/projects/${projectId}/sites`, { token }),
+  createSite: (token: string, projectId: string, input: { name: string; address?: string }) =>
+    apiFetch<SiteDto>(`/projects/${projectId}/sites`, { method: 'POST', body: input, token }),
+  updateSite: (token: string, projectId: string, siteId: string, patch: { status?: string; name?: string }) =>
+    apiFetch<SiteDto>(`/projects/${projectId}/sites/${siteId}`, { method: 'PATCH', body: patch, token }),
+  members: (token: string, projectId: string) =>
+    apiFetch<{ data: ProjectMemberDto[] }>(`/projects/${projectId}/members`, { token }),
+  addMember: (token: string, projectId: string, input: MemberInput) =>
+    apiFetch<ProjectMemberDto>(`/projects/${projectId}/members`, { method: 'POST', body: input, token }),
+  updateMember: (token: string, projectId: string, memberId: string, patch: { scopeRole: string }) =>
+    apiFetch<ProjectMemberDto>(`/projects/${projectId}/members/${memberId}`, { method: 'PATCH', body: patch, token }),
+  removeMember: (token: string, projectId: string, memberId: string) =>
+    apiFetch<void>(`/projects/${projectId}/members/${memberId}`, { method: 'DELETE', token }),
 };

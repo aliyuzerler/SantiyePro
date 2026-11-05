@@ -7,5 +7,7 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 30000,
     hookTimeout: 30000,
+    // Tüm e2e dosyaları aynı test veritabanını kullanır → sıralı koşmalı (Faz 03).
+    fileParallelism: false,
   },
 });
