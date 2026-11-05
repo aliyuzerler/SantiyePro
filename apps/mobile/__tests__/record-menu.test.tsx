@@ -1,0 +1,29 @@
+import { fireEvent, render } from '@testing-library/react-native';
+import { describe, expect, it, jest } from '@jest/globals';
+import { RecordMenuSheet, RECORD_OPTIONS } from '../src/components/RecordMenuSheet';
+
+describe('RecordMenuSheet (+ Kayıt menüsü)', () => {
+  it('design/02 kayıt türlerini listeler', async () => {
+    const screen = await render(<RecordMenuSheet visible onClose={() => {}} options={RECORD_OPTIONS} />);
+    expect(screen.getByText('Günlük rapor')).toBeTruthy();
+    expect(screen.getByText('Puantaj')).toBeTruthy();
+    expect(screen.getByText('Malzeme hareketi')).toBeTruthy();
+    expect(screen.getByText('Gider')).toBeTruthy();
+    expect(screen.getByText('Fotoğraf / ilerleme')).toBeTruthy();
+  });
+
+  it('iskelet aşamasında seçenekler devre dışı ve faz bilgili', async () => {
+    const screen = await render(<RecordMenuSheet visible onClose={() => {}} options={RECORD_OPTIONS} />);
+    const daily = screen.getByLabelText('Günlük rapor (Faz 05 ile aktif)');
+    expect(daily.props.accessibilityState).toMatchObject({ disabled: true });
+    const attendance = screen.getByLabelText('Puantaj (Faz 06 ile aktif)');
+    expect(attendance.props.accessibilityState).toMatchObject({ disabled: true });
+  });
+
+  it('kapatma aksiyonu çalışır', async () => {
+    const onClose = jest.fn();
+    const screen = await render(<RecordMenuSheet visible onClose={onClose} options={RECORD_OPTIONS} />);
+    fireEvent.press(screen.getByLabelText('Menüyü kapat'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});

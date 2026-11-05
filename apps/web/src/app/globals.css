@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+/*
+ * ŞantiyePro tasarım token'ları — TEK KAYNAK: design/tokens.json
+ * Bu dosyadaki değerler tokens.json ile birebir eşleşir (test/tokens.test.ts doğrular).
+ * Tailwind 4 @theme: --color-* tanımları bg-brand-900, text-text-primary vb. utility'leri üretir.
+ */
+@theme {
+  --color-brand-900: #14263d;
+  --color-brand-800: #1d3553;
+  --color-brand-600: #2e5b83;
+
+  --color-accent-500: #d99a2b;
+  --color-accent-100: #fff3d9;
+
+  --color-surface-0: #ffffff;
+  --color-surface-50: #f5f7fa;
+  --color-surface-100: #e9eef3;
+
+  --color-border-default: #d8e0e8;
+
+  --color-text-primary: #172433;
+  --color-text-secondary: #5c6b7a;
+
+  --color-success-600: #21845b;
+  --color-warning-600: #b7791f;
+  --color-danger-600: #c2413a;
+  --color-info-600: #2c6eaa;
+
+  --font-sans: 'Inter', Roboto, 'SF Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-input: 8px;
+  --radius-button: 8px;
+  --radius-card: 12px;
+  --radius-dialog: 14px;
+
+  --spacing-sidebar: 248px;
+  --spacing-gutter: 16px;
+}
+
+/* Sayfa temel stilleri */
+html {
+  background-color: var(--color-surface-100);
+}
+
+body {
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Sayısal değerler tabular hizalanır (design/01 tipografi kuralı) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Klavye focus halkası — belirgin olmalı (design/01 etkileşim durumları) */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
