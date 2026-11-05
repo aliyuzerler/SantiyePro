@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import cookieParser from 'cookie-parser';
+import { createHash } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 dotenv.config({ override: true });
@@ -150,19 +151,54 @@ describe('Auth & RBAC (e2e)', () => {
 
   // ---------- 3) Refresh rotasyonu, reuse, logout ----------
 
-  it('refresh rotasyonu: eski token iptal edilir; reuse → tüm aile iptal olur', async () => {
+  it('refresh rotasyonu + eşzamanlılık grace: aynı eski token pencere içinde tekrar gelirse aile yaşar', async () => {
     const login = await request(app.getHttpServer()).post('/api/v1/auth/login').send(ADMIN).expect(200);
+    const tokenA: string = login.body.refreshToken;
     // Mobil akışı: refreshToken gövdede taşınır
     const refresh1 = await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
-      .send({ refreshToken: login.body.refreshToken })
+      .send({ refreshToken: tokenA })
       .expect(200);
     expect(refresh1.body.accessToken).toBeTruthy();
 
-    // Rotasyon: eski token yeniden kullanılırsa (reuse) ailenin tamamı iptal edilir.
+    // Aynı eski token rotasyonun hemen ardından tekrar gelirse (ikinci sekme /
+    // StrictMode çift boot) grace penceresi devrededir: aile iptal edilmez,
+    // yeni geçerli çift verilir.
+    const refresh2 = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: tokenA })
+      .expect(200);
+    expect(refresh2.body.refreshToken).toBeTruthy();
+
+    // Aile yaşıyor: rotasyonla verilmiş token geçerli kalır.
     await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
-      .send({ refreshToken: login.body.refreshToken })
+      .send({ refreshToken: refresh1.body.refreshToken })
+      .expect(200);
+
+    const graceAudit = await prisma.auditLog.findFirst({ where: { action: 'auth.refresh_reuse_grace' } });
+    expect(graceAudit).toBeTruthy();
+  });
+
+  it('grace penceresi dışında reuse → tüm aile iptal olur', async () => {
+    const login = await request(app.getHttpServer()).post('/api/v1/auth/login').send(ADMIN).expect(200);
+    const tokenA: string = login.body.refreshToken;
+    const refresh1 = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: tokenA })
+      .expect(200);
+
+    // Grace süresini simüle et: eski token'ın iptal zamanını geriye çek.
+    const oldHash = createHash('sha256').update(tokenA).digest('hex');
+    await prisma.refreshToken.update({
+      where: { tokenHash: oldHash },
+      data: { revokedAt: new Date(Date.now() - 120_000) },
+    });
+
+    // Pencere dışı reuse: ailenin tamamı iptal edilir.
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: tokenA })
       .expect(401);
 
     // Yeni (rotate edilmiş) token da artık geçersiz olmalı.
@@ -170,6 +206,9 @@ describe('Auth & RBAC (e2e)', () => {
       .post('/api/v1/auth/refresh')
       .send({ refreshToken: refresh1.body.refreshToken })
       .expect(401);
+
+    const reuseAudit = await prisma.auditLog.findFirst({ where: { action: 'auth.refresh_reuse_detected' } });
+    expect(reuseAudit).toBeTruthy();
   });
 
   it('cookie akışı: refresh cookie ile yenileme çalışır, logout cookie iptal eder', async () => {

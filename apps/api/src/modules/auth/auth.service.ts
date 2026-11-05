@@ -16,6 +16,13 @@ import type { UserDto } from '@santiyepro/contracts';
 
 export const REFRESH_COOKIE_NAME = 'santiyepro_rt';
 export const REFRESH_TTL_DAYS = 30;
+/**
+ * Eşzamanlılık toleransı (grace): rotasyon hemen ardından gelen ikinci sekme /
+ * çift boot aynı eski cookie ile refresh isterse aile iptal edilmez, yeni çift
+ * verilir. Pencere dışındaki reuse gerçek hırsızlık sayılır → aile iptal.
+ * E2e'de 0'a indirilebilir (AUTH_REFRESH_REUSE_GRACE_MS=0).
+ */
+export const REFRESH_REUSE_GRACE_MS = Number(process.env.AUTH_REFRESH_REUSE_GRACE_MS ?? 60_000);
 
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
@@ -34,8 +41,10 @@ function constantTimeEquals(a: string, b: string): boolean {
  * - Login hataları kullanıcı var/yok ayrımı yapmaz: tek generic mesaj.
  * - Refresh token'lar yalnızca SHA-256 hash olarak saklanır.
  * - Rotasyon: her refresh'te eski token iptal edilir, yenis verilir.
- * - Reuse tespiti: iptal edilmiş token yeniden kullanılırsa token ailesinin
- *   tamamı iptal edilir ve denetim günlüğüne yazılır.
+ * - Reuse tespiti: iptal edilmiş token grace penceresi (REFRESH_REUSE_GRACE_MS)
+ *   dışında yeniden kullanılırsa token ailesinin tamamı iptal edilir ve denetim
+ *   günlüğüne yazılır. Pencere içindeki reuse eşzamanlı istemcidir (ikinci sekme,
+ *   çift boot) — aile yaşar, yeni çift verilir ve audit'e 'grace' olarak yazılır.
  * - Kullanıcı Disable edilince tüm refresh token'ları iptal edilir.
  */
 @Injectable()
@@ -222,17 +231,33 @@ export class AuthService {
     }
 
     // Reuse tespiti: iptal edilmiş token yeniden geldi → ailenin tamamını iptal et.
+    // İstisna: rotasyonun hemen ardından gelen eşzamanlı istek (grace penceresi).
     if (existing.revokedAt) {
-      await this.revokeFamily(existing.familyId);
+      const withinGrace =
+        REFRESH_REUSE_GRACE_MS > 0 &&
+        existing.replacedBy !== null &&
+        Date.now() - existing.revokedAt.getTime() <= REFRESH_REUSE_GRACE_MS;
+      if (!withinGrace) {
+        await this.revokeFamily(existing.familyId);
+        await this.audit.record({
+          actorUserId: existing.userId,
+          action: 'auth.refresh_reuse_detected',
+          entityType: 'RefreshToken',
+          entityId: existing.id,
+          after: { familyId: existing.familyId, allFamilyTokensRevoked: true },
+          ...meta,
+        });
+        throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'Oturum geçersiz' });
+      }
+      // Grace: aynı aileden yeni çift verilir (aile yaşar); audit'e yazılır.
       await this.audit.record({
         actorUserId: existing.userId,
-        action: 'auth.refresh_reuse_detected',
+        action: 'auth.refresh_reuse_grace',
         entityType: 'RefreshToken',
         entityId: existing.id,
-        after: { familyId: existing.familyId, allFamilyTokensRevoked: true },
+        after: { familyId: existing.familyId, withinGraceMs: REFRESH_REUSE_GRACE_MS },
         ...meta,
       });
-      throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'Oturum geçersiz' });
     }
 
     if (existing.expiresAt.getTime() < Date.now()) {

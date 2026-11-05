@@ -22,6 +22,26 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * Tek uçuşlu (single-flight) refresh: aynı anda birden çok boot isteği
+ * (React StrictMode çift effect, hızlı sayfa geçişleri) tek HTTP çağrısında
+ * birleşir. Aksi halde ikinci istek rotate edilmiş eski cookie ile gelir ve
+ * sunucudaki reuse tespiti oturum ailesini iptal eder (canlı e2e bulgusu).
+ */
+let refreshInFlight: Promise<{ accessToken: string; user: UserDto }> | null = null;
+function singleFlightRefresh(): Promise<{ accessToken: string; user: UserDto }> {
+  refreshInFlight ??= authApi
+    .refresh()
+    .catch((err) => {
+      refreshInFlight = null;
+      throw err;
+    })
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const boot = useCallback(async () => {
     try {
-      const refreshed = await authApi.refresh();
+      const refreshed = await singleFlightRefresh();
       tokenRef.current = refreshed.accessToken;
       setUser(refreshed.user);
     } catch {
