@@ -175,3 +175,63 @@ export const projectsApi = {
 export const usersApi = {
   list: (token: string) => request<{ data: UserDto[] }>('/users?page=1&pageSize=100', { token }),
 };
+
+// ---------- Görevler (Faz 04) ----------
+
+import type { TaskDto, TaskDetailDto, TaskCommentDto } from '@santiyepro/contracts';
+export type { TaskDto, TaskDetailDto, TaskCommentDto };
+
+export interface TasksListResponse {
+  data: TaskDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface TaskListParams {
+  page?: number;
+  pageSize?: number;
+  projectId?: string;
+  assigneeId?: string;
+  status?: string;
+  priority?: string;
+  overdue?: boolean;
+  search?: string;
+  sort?: 'createdAt' | 'dueAt' | 'priority' | 'title';
+  order?: 'asc' | 'desc';
+}
+
+export const tasksApi = {
+  /** Kapsamlı görev listesi — 'me' oturum sahibine atananlar (Bana Atananlar). */
+  list: async (token: string, params: TaskListParams = {}): Promise<TasksListResponse> => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', String(params.pageSize ?? 20));
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.assigneeId) qs.set('assigneeId', params.assigneeId);
+    if (params.status) qs.set('status', params.status);
+    if (params.priority) qs.set('priority', params.priority);
+    if (params.overdue) qs.set('overdue', 'true');
+    if (params.search) qs.set('search', params.search);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.order) qs.set('order', params.order);
+    return request<TasksListResponse>(`/tasks?${qs.toString()}`, { token });
+  },
+
+  get: (token: string, id: string) => request<TaskDetailDto>(`/tasks/${id}`, { token }),
+
+  update: (
+    token: string,
+    id: string,
+    patch: {
+      title?: string;
+      status?: string;
+      priority?: string;
+      assigneeId?: string | null;
+      dueAt?: string | null;
+      checklist?: Array<{ id: string; label: string; done: boolean }>;
+      version?: number;
+    },
+  ) => request<TaskDto>(`/tasks/${id}`, { method: 'PATCH', body: patch, token }),
+
+  addComment: (token: string, taskId: string, body: string) =>
+    request<TaskCommentDto>(`/tasks/${taskId}/comments`, { method: 'POST', body: { body }, token }),
+};

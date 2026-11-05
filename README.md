@@ -159,16 +159,16 @@ kapanmadan **gerçek ortamda** koşar — gerçek UI girişi, menüdeki 11 modü
 mobil drawer akışı ve fazın kendi kritik akışı (gerçek mock'suz API + PostgreSQL).
 Ayrıntılar: [`docs/process/canli-test-standardi.md`](docs/process/canli-test-standardi.md).
 
-**Mevcut test envanteri (Faz 03 itibarıyla — 122 test + canlı E2E):**
+**Mevcut test envanteri (Faz 04 itibarıyla — 175 test + canlı E2E):**
 
 | Paket | Araç | Kapsam |
 | --- | --- | --- |
-| `packages/contracts` | Vitest | Tasarım token paritesi (`tokens.json` ↔ kod) |
+| `packages/contracts` | Vitest | Tasarım token paritesi + görev durum makinesi, gecikme hesabı, izin matrisi (18 test) |
 | `apps/api` | Vitest | Health + auth birim testleri (rate limit, maskeleme, parola politikası) |
-| `apps/api` e2e | Vitest + gerçek PostgreSQL | 10 güvenlik maddesi + 16 proje/şantiye maddesi: benzersiz kod, kapsam/IDOR, pagination, arşiv koruması, audit |
-| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI bileşenleri, oturum, kullanıcı yönetimi, proje listesi/detay (37 test) |
-| `apps/mobile` | Jest + RNTL | Token köprüsü, UI, SecureStore kuralı, giriş akışı, kabuk, proje listesi + sekmeli detay (37 test) |
-| `apps/web-e2e` | **Playwright (canlı)** | API sağlık (gerçek DB), UI girişi + 11 modül sayfası, mobil drawer, faz kritik akışı |
+| `apps/api` e2e | Vitest + gerçek PostgreSQL | 17 auth (rotasyon + grace) + 21 görev (durum makinesi, IDOR, checklist, geçmiş, dueAt, version, bildirim) + 16 proje/şantiye + 5 health = 59 e2e |
+| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI bileşenleri, oturum, kullanıcı, proje, görev listesi + drawer (44 test) |
+| `apps/mobile` | Jest + RNTL | Token köprüsü, UI, SecureStore, giriş, kabuk, projeler, görevler + detay akışı (44 test) |
+| `apps/web-e2e` | **Playwright (canlı)** | API sağlık, UI girişi + 11 modül, mobil drawer, Faz 04 kritik akışı (12 koşu) |
 
 Yerel tam yığın doğrulama (Docker'sız):
 

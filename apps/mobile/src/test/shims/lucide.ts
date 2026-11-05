@@ -23,5 +23,6 @@ export const Archive = Icon;
 export const Pencil = Icon;
 export const X = Icon;
 export const ClipboardList = Icon;
+export const ArrowLeft = Icon;
 
 export default Icon;

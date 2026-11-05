@@ -47,6 +47,11 @@ describe('Projects & Sites (e2e)', () => {
   beforeAll(async () => {
     await prisma.site.deleteMany();
     await prisma.project.deleteMany();
+    // Faz 04 tabloları (FK zinciri: Restrict ilişkiler önce temizlenir)
+    await prisma.notification.deleteMany();
+    await prisma.taskStatusHistory.deleteMany();
+    await prisma.taskComment.deleteMany();
+    await prisma.task.deleteMany();
     await prisma.auditLog.deleteMany();
     await prisma.passwordResetToken.deleteMany();
     await prisma.refreshToken.deleteMany();

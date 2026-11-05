@@ -8,8 +8,9 @@
  */
 import type { UserDto } from '@santiyepro/contracts';
 import type { ProjectDto, ProjectDetailDto, SiteDto, ProjectMemberDto } from '@santiyepro/contracts';
+import type { TaskDto, TaskDetailDto, TaskCommentDto } from '@santiyepro/contracts';
 
-export type { UserDto, ProjectDto, ProjectDetailDto, SiteDto, ProjectMemberDto };
+export type { UserDto, ProjectDto, ProjectDetailDto, SiteDto, ProjectMemberDto, TaskDto, TaskDetailDto, TaskCommentDto };
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
 
@@ -189,4 +190,74 @@ export const projectsApi = {
     apiFetch<ProjectMemberDto>(`/projects/${projectId}/members/${memberId}`, { method: 'PATCH', body: patch, token }),
   removeMember: (token: string, projectId: string, memberId: string) =>
     apiFetch<void>(`/projects/${projectId}/members/${memberId}`, { method: 'DELETE', token }),
+};
+
+// ---------- Görevler (Faz 04) ----------
+
+export interface TasksListResponse {
+  data: TaskDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface TaskListParams {
+  page?: number;
+  projectId?: string;
+  assigneeId?: string;
+  status?: string;
+  priority?: string;
+  overdue?: boolean;
+  search?: string;
+  sort?: 'createdAt' | 'dueAt' | 'priority' | 'title';
+  order?: 'asc' | 'desc';
+}
+
+export interface CreateTaskInput {
+  projectId: string;
+  siteId?: string;
+  title: string;
+  description?: string;
+  priority?: string;
+  assigneeId?: string;
+  dueAt?: string;
+  checklist?: Array<{ label: string; done?: boolean }>;
+  fileRefs?: Array<{ id: string; name: string; mimeType?: string; sizeBytes?: number }>;
+}
+
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string | null;
+  siteId?: string | null;
+  status?: string;
+  priority?: string;
+  assigneeId?: string | null;
+  dueAt?: string | null;
+  checklist?: Array<{ id: string; label: string; done: boolean }>;
+  fileRefs?: Array<{ id: string; name: string; mimeType?: string; sizeBytes?: number }>;
+  version?: number;
+}
+
+export const tasksApi = {
+  list: (token: string, params: TaskListParams = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', '20');
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.assigneeId) qs.set('assigneeId', params.assigneeId);
+    if (params.status) qs.set('status', params.status);
+    if (params.priority) qs.set('priority', params.priority);
+    if (params.overdue) qs.set('overdue', 'true');
+    if (params.search) qs.set('search', params.search);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.order) qs.set('order', params.order);
+    return apiFetch<TasksListResponse>(`/tasks?${qs.toString()}`, { token });
+  },
+  get: (token: string, id: string) => apiFetch<TaskDetailDto>(`/tasks/${id}`, { token }),
+  create: (token: string, input: CreateTaskInput) =>
+    apiFetch<TaskDto>('/tasks', { method: 'POST', body: input, token }),
+  update: (token: string, id: string, patch: UpdateTaskInput) =>
+    apiFetch<TaskDto>(`/tasks/${id}`, { method: 'PATCH', body: patch, token }),
+  comments: (token: string, id: string) =>
+    apiFetch<{ data: TaskCommentDto[] }>(`/tasks/${id}/comments`, { token }),
+  addComment: (token: string, id: string, body: string) =>
+    apiFetch<TaskCommentDto>(`/tasks/${id}/comments`, { method: 'POST', body: { body }, token }),
 };

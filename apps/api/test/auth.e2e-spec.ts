@@ -40,6 +40,11 @@ describe('Auth & RBAC (e2e)', () => {
 
   beforeAll(async () => {
     // Test veritabanını temizle ve sistem rollerini seed et.
+    // Faz 04 tabloları (FK zinciri: Restrict ilişkiler önce temizlenir)
+    await prisma.notification.deleteMany();
+    await prisma.taskStatusHistory.deleteMany();
+    await prisma.taskComment.deleteMany();
+    await prisma.task.deleteMany();
     await prisma.auditLog.deleteMany();
     await prisma.passwordResetToken.deleteMany();
     await prisma.refreshToken.deleteMany();

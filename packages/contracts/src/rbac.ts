@@ -41,6 +41,8 @@ export const PERMISSIONS = {
   DAILY_REPORT_VIEW: 'dailyreport.view',
   DAILY_REPORT_APPROVE: 'dailyreport.approve',
   TASK_ASSIGN: 'task.assign',
+  TASK_VIEW: 'task.view',
+  TASK_EDIT: 'task.edit',
   ATTENDANCE_EDIT: 'attendance.edit',
   ATTENDANCE_VIEW: 'attendance.view',
   INVENTORY_MOVE: 'inventory.move',
@@ -65,6 +67,12 @@ export const ALL_PERMISSIONS = Object.values(PERMISSIONS) as PermissionKey[];
  *   kapsam-lı görüntüleme izni olarak ayrıştırılacak.
  * - "Gider onayı: yapılandırılabilir" MVP'de yalnızca firma yöneticisinde;
  *   firma ayarından özelleştirme Faz 03+ ayar modülüyle gelir.
+ * - "Görev atama: sınırlı (Teknik Ofis)" → MVP'de task.edit verilir (görev
+ *   oluşturma/düzenleme) ama task.assign verilmez (kişi atayamaz). Faz 10
+ *   rapor fazında ayrıştırılacak diğer "sınırlı" hücreler gibi belgelenmiştir.
+ * - Görev görüntüleme (task.view): docs/06'da görev satırı yoktur; saha
+ *   personeli "Bana Atananlar" listesi için FIELD_WORKER'a da verilir. Proje
+ *   kapsamı kontrolü yine üyelikle sınırlıdır. Depo/Muhasebe'ye verilmez.
  * - "Proje görüntüleme: tümü" ayrımı izinle değil, proje kapsamı kontrolüyle yapılır:
  *   FIRM_ADMIN tüm projelere erişir, diğer roller yalnızca ProjectMember olduğu projelere.
  */
@@ -80,6 +88,8 @@ export const ROLE_PERMISSIONS: Record<SystemRole, readonly PermissionKey[]> = {
     PERMISSIONS.DAILY_REPORT_VIEW,
     PERMISSIONS.DAILY_REPORT_APPROVE,
     PERMISSIONS.TASK_ASSIGN,
+    PERMISSIONS.TASK_VIEW,
+    PERMISSIONS.TASK_EDIT,
     PERMISSIONS.ATTENDANCE_EDIT,
     PERMISSIONS.ATTENDANCE_VIEW,
     PERMISSIONS.INVENTORY_MOVE,
@@ -98,6 +108,8 @@ export const ROLE_PERMISSIONS: Record<SystemRole, readonly PermissionKey[]> = {
     PERMISSIONS.DAILY_REPORT_VIEW,
     PERMISSIONS.DAILY_REPORT_APPROVE,
     PERMISSIONS.TASK_ASSIGN,
+    PERMISSIONS.TASK_VIEW,
+    PERMISSIONS.TASK_EDIT,
     PERMISSIONS.ATTENDANCE_EDIT,
     PERMISSIONS.ATTENDANCE_VIEW,
     PERMISSIONS.INVENTORY_MOVE,
@@ -112,6 +124,8 @@ export const ROLE_PERMISSIONS: Record<SystemRole, readonly PermissionKey[]> = {
     PERMISSIONS.DAILY_REPORT_CREATE,
     PERMISSIONS.DAILY_REPORT_VIEW,
     PERMISSIONS.TASK_ASSIGN,
+    PERMISSIONS.TASK_VIEW,
+    PERMISSIONS.TASK_EDIT,
     PERMISSIONS.ATTENDANCE_EDIT,
     PERMISSIONS.ATTENDANCE_VIEW,
     PERMISSIONS.INVENTORY_VIEW,
@@ -121,6 +135,8 @@ export const ROLE_PERMISSIONS: Record<SystemRole, readonly PermissionKey[]> = {
     PERMISSIONS.USER_VIEW,
     PERMISSIONS.PROJECT_VIEW,
     PERMISSIONS.DAILY_REPORT_VIEW,
+    PERMISSIONS.TASK_VIEW,
+    PERMISSIONS.TASK_EDIT,
     PERMISSIONS.ATTENDANCE_VIEW,
     PERMISSIONS.INVENTORY_VIEW,
     PERMISSIONS.CLAIM_PREPARE,
@@ -143,6 +159,7 @@ export const ROLE_PERMISSIONS: Record<SystemRole, readonly PermissionKey[]> = {
   ],
   FIELD_WORKER: [
     PERMISSIONS.PROJECT_VIEW,
+    PERMISSIONS.TASK_VIEW,
   ],
 };
 
