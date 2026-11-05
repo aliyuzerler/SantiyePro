@@ -9,6 +9,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { ProjectsScreen } from '../screens/ProjectsScreen';
 import { TasksScreen } from '../screens/TasksScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { DailyReportFormScreen } from '../screens/DailyReportFormScreen';
 import { RecordMenuSheet, RECORD_OPTIONS } from '../components/RecordMenuSheet';
 import { colors, touch } from '../theme/tokens';
 
@@ -24,6 +25,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 /** Alt navigasyon — design/02: Ana Sayfa, Projeler, ortada `+ Kayıt`, Görevler, Profil. */
 export function RootTabs() {
   const [recordMenuOpen, setRecordMenuOpen] = useState(false);
+  const [reportFormOpen, setReportFormOpen] = useState(false);
 
   const tabBar = (props: BottomTabBarProps) => (
     <View style={styles.tabBarWrap}>
@@ -68,7 +70,16 @@ export function RootTabs() {
         visible={recordMenuOpen}
         onClose={() => setRecordMenuOpen(false)}
         options={RECORD_OPTIONS}
+        onSelect={(option) => {
+          setRecordMenuOpen(false);
+          if (option.key === 'daily-report') setReportFormOpen(true);
+        }}
       />
+      {reportFormOpen && (
+        <View style={StyleSheet.absoluteFill} testID="daily-report-form-overlay">
+          <DailyReportFormScreen onClose={() => setReportFormOpen(false)} />
+        </View>
+      )}
     </View>
   );
 

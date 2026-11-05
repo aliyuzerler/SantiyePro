@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { AuditService } from './audit.service.js';
+import { MediaStorageService } from './media/media-storage.service.js';
 import { PasswordHasherService } from './password-hasher.service.js';
 import { RateLimiterService } from './rate-limiter.service.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
@@ -12,7 +13,7 @@ import { PermissionsGuard } from './auth/permissions.guard.js';
  */
 @Global()
 @Module({
-  providers: [AuditService, PasswordHasherService, RateLimiterService, JwtService, JwtAuthGuard, PermissionsGuard],
-  exports: [AuditService, PasswordHasherService, RateLimiterService, JwtService, JwtAuthGuard, PermissionsGuard],
+  providers: [AuditService, MediaStorageService, PasswordHasherService, RateLimiterService, JwtService, JwtAuthGuard, PermissionsGuard],
+  exports: [AuditService, MediaStorageService, PasswordHasherService, RateLimiterService, JwtService, JwtAuthGuard, PermissionsGuard],
 })
 export class CommonModule {}

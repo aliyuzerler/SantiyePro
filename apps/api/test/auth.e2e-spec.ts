@@ -7,11 +7,16 @@ import { createHash } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 dotenv.config({ override: true });
+// Bu spec rate limit davranışını ÜRETİM varsayılanıyla sınar (5/15dk);
+// yerel .env'deki genişletilmiş değerler testi etkilememeli.
+process.env.AUTH_LOGIN_EMAIL_RATE_LIMIT = '5';
+process.env.AUTH_LOGIN_IP_RATE_LIMIT = '30';
 
 import { AppModule } from '../src/app.module.js';
 import { GlobalExceptionFilter } from '../src/common/global-exception.filter.js';
 import { traceIdMiddleware } from '../src/common/trace-id.middleware.js';
 import { runSeed } from '../prisma/seed.js';
+import { resetTransactionalData } from './helpers/db-reset.js';
 import { RateLimiterService } from '../src/common/rate-limiter.service.js';
 import { REFRESH_COOKIE_NAME } from '../src/modules/auth/auth.service.js';
 
@@ -40,20 +45,7 @@ describe('Auth & RBAC (e2e)', () => {
 
   beforeAll(async () => {
     // Test veritabanını temizle ve sistem rollerini seed et.
-    // Faz 04 tabloları (FK zinciri: Restrict ilişkiler önce temizlenir)
-    await prisma.notification.deleteMany();
-    await prisma.taskStatusHistory.deleteMany();
-    await prisma.taskComment.deleteMany();
-    await prisma.task.deleteMany();
-    await prisma.auditLog.deleteMany();
-    await prisma.passwordResetToken.deleteMany();
-    await prisma.refreshToken.deleteMany();
-    await prisma.projectMember.deleteMany();
-    await prisma.userRole.deleteMany();
-    await prisma.rolePermission.deleteMany();
-    await prisma.role.deleteMany();
-    await prisma.permission.deleteMany();
-    await prisma.user.deleteMany();
+    await resetTransactionalData(prisma);
     await runSeed(prisma);
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();

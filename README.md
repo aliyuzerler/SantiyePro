@@ -159,16 +159,16 @@ kapanmadan **gerçek ortamda** koşar — gerçek UI girişi, menüdeki 11 modü
 mobil drawer akışı ve fazın kendi kritik akışı (gerçek mock'suz API + PostgreSQL).
 Ayrıntılar: [`docs/process/canli-test-standardi.md`](docs/process/canli-test-standardi.md).
 
-**Mevcut test envanteri (Faz 04 itibarıyla — 175 test + canlı E2E):**
+**Mevcut test envanteri (Faz 05 itibarıyla — 228 test + canlı E2E):**
 
 | Paket | Araç | Kapsam |
 | --- | --- | --- |
-| `packages/contracts` | Vitest | Tasarım token paritesi + görev durum makinesi, gecikme hesabı, izin matrisi (18 test) |
-| `apps/api` | Vitest | Health + auth birim testleri (rate limit, maskeleme, parola politikası) |
-| `apps/api` e2e | Vitest + gerçek PostgreSQL | 17 auth (rotasyon + grace) + 21 görev (durum makinesi, IDOR, checklist, geçmiş, dueAt, version, bildirim) + 16 proje/şantiye + 5 health = 59 e2e |
-| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI bileşenleri, oturum, kullanıcı, proje, görev listesi + drawer (44 test) |
-| `apps/mobile` | Jest + RNTL | Token köprüsü, UI, SecureStore, giriş, kabuk, projeler, görevler + detay akışı (44 test) |
-| `apps/web-e2e` | **Playwright (canlı)** | API sağlık, UI girişi + 11 modül, mobil drawer, Faz 04 kritik akışı (12 koşu) |
+| `packages/contracts` | Vitest | Token paritesi + görev/rapor durum makineleri, gecikme, izin matrisi, medya allowlist (27 test) |
+| `apps/api` | Vitest | Health + auth birim + medya güvenliği (EXIF strip, magic sniff, imzalı URL) (17 test) |
+| `apps/api` e2e | Vitest + gerçek PostgreSQL | auth 17 + görev 21 + **günlük rapor 11 + medya 12** + proje 16 + health 5 = 82 e2e |
+| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI, oturum, kullanıcı, proje, görev, **rapor listesi/detay/galeri** (50 test) |
+| `apps/mobile` | Jest + RNTL | UI, oturum, kabuk, proje, görev, **günlük rapor formu + çevrimdışı medya kuyruğu** (52 test) |
+| `apps/web-e2e` | **Playwright (canlı)** | API sağlık, kabuk + drawer, görev ve **rapor kritik akışları** (15 koşu) |
 
 Yerel tam yığın doğrulama (Docker'sız):
 

@@ -6,6 +6,8 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { ProjectsModule } from './modules/projects/projects.module.js';
 import { TasksModule } from './modules/tasks/tasks.module.js';
+import { MediaModule } from './modules/media/media.module.js';
+import { DailyReportsModule } from './modules/daily-reports/daily-reports.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { CommonModule } from './common/common.module.js';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard.js';
@@ -16,6 +18,7 @@ import { PermissionsGuard } from './common/auth/permissions.guard.js';
  * Faz 02: Auth (login/refresh/bootstrap/parola akışları), Users/RBAC, AuditLog.
  * Faz 03: Projects/Sites/ProjectMembers (kapsamlı liste, arşivleme, IDOR koruması).
  * Faz 04: Tasks (durum makinesi, checklist, yorum, durum geçmişi, atama bildirimi).
+ * Faz 05: Media (private depo + imzalı URL) ve DailyReports (taslak→gönder→onay/red + revizyon).
  * Global guard sırası: kimlik doğrulama → izin kontrolü (deny-by-default).
  */
 @Module({
@@ -31,6 +34,8 @@ import { PermissionsGuard } from './common/auth/permissions.guard.js';
     UsersModule,
     ProjectsModule,
     TasksModule,
+    MediaModule,
+    DailyReportsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

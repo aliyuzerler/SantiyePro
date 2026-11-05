@@ -52,6 +52,7 @@ describe('Tasks (e2e)', () => {
     await prisma.taskStatusHistory.deleteMany();
     await prisma.taskComment.deleteMany();
     await prisma.task.deleteMany();
+    await prisma.mediaFile.deleteMany();
     await prisma.site.deleteMany();
     await prisma.project.deleteMany();
     await prisma.auditLog.deleteMany();

@@ -235,3 +235,89 @@ export const tasksApi = {
   addComment: (token: string, taskId: string, body: string) =>
     request<TaskCommentDto>(`/tasks/${taskId}/comments`, { method: 'POST', body: { body }, token }),
 };
+
+// ---------- Günlük raporlar ve medya (Faz 05) ----------
+
+import type { DailyReportDto, DailyReportDetailDto, MediaUploadUrlResponse, MediaDownloadUrlResponse } from '@santiyepro/contracts';
+export type { DailyReportDto, DailyReportDetailDto, MediaUploadUrlResponse, MediaDownloadUrlResponse };
+
+/** API'den dönen göreli medya URL'ini API köküne çözer. */
+export function resolveMediaUrl(relativePath: string): string {
+  if (/^https?:\/\//.test(relativePath)) return relativePath;
+  const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+  return `${origin}${relativePath}`;
+}
+
+export interface WorkerRowInput {
+  name: string;
+  jobTitle?: string;
+  workerCount: number;
+  hours: string;
+}
+
+export interface SaveDailyReportInput {
+  projectId: string;
+  siteId?: string;
+  reportDate: string;
+  weather?: string;
+  workSummary: string;
+  workforceSummary?: string;
+  equipmentSummary?: string;
+  issues?: string;
+  safetyNotes?: string;
+  nextDayPlan?: string;
+  workers?: WorkerRowInput[];
+  mediaIds?: string[];
+}
+
+export const dailyReportsApi = {
+  list: async (token: string, params: { projectId?: string; status?: string; page?: number; pageSize?: number } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', String(params.pageSize ?? 20));
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.status) qs.set('status', params.status);
+    return request<{ data: DailyReportDto[]; meta: { page: number; pageSize: number; total: number; totalPages: number } }>(
+      `/daily-reports?${qs.toString()}`,
+      { token },
+    );
+  },
+  get: (token: string, id: string) => request<DailyReportDetailDto>(`/daily-reports/${id}`, { token }),
+  create: (token: string, input: SaveDailyReportInput) =>
+    request<DailyReportDto>('/daily-reports', { method: 'POST', body: input, token }),
+  update: (token: string, id: string, patch: Partial<SaveDailyReportInput>) =>
+    request<DailyReportDto>(`/daily-reports/${id}`, { method: 'PATCH', body: patch, token }),
+  submit: (token: string, id: string) =>
+    request<DailyReportDto>(`/daily-reports/${id}/submit`, { method: 'POST', body: {}, token }),
+  reopen: (token: string, id: string) =>
+    request<DailyReportDto>(`/daily-reports/${id}/reopen`, { method: 'POST', body: {}, token }),
+};
+
+export const mediaApi = {
+  requestUploadUrl: (
+    token: string,
+    input: { filename: string; mimeType: string; sizeBytes: number; projectId: string },
+  ) => request<MediaUploadUrlResponse>('/media/upload-url', { method: 'POST', body: input, token }),
+
+  /**
+   * İmzalı PUT URL'ine yerel dosyayı ikili yükler (expo-file-system uploadAsync —
+   * auth header gerekmez; imza yeterlidir). Başarısızlıkta hata fırlatır; kuyruk
+   * çağıran tarafta işlenir (rapor metni sunucuda zaten taslak olarak güvende).
+   */
+  uploadBinary: async (uploadUrl: string, fileUri: string): Promise<void> => {
+    const FileSystem = await import('expo-file-system');
+    // SDK 58 yeni API: File sınıfı + upload() (legacy top-level uploadAsync kaldırıldı).
+    const file = new FileSystem.File(fileUri);
+    const res = await file.upload(resolveMediaUrl(uploadUrl), {
+      httpMethod: 'PUT',
+      uploadType: FileSystem.UploadType.BINARY_CONTENT,
+      headers: { 'Content-Type': 'application/octet-stream' },
+    });
+    if (res.status >= 400) {
+      throw new ApiError(res.status, 'VALIDATION_ERROR', 'Dosya yüklenemedi (kuyruğa alındı)');
+    }
+  },
+
+  complete: (token: string, mediaId: string) =>
+    request<MediaDownloadUrlResponse>('/media/complete', { method: 'POST', body: { mediaId }, token }),
+};

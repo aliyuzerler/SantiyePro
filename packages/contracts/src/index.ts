@@ -56,6 +56,8 @@ export * from './auth.js';
 export * from './rbac.js';
 export * from './projects.js';
 export * from './tasks.js';
+export * from './media.js';
+export * from './dailyreports.js';
 
 // ---------- Ortak alanlar ----------
 

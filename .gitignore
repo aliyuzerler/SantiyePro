@@ -43,3 +43,6 @@ infra/docker/data/
 # Playwright E2E çıktıları
 apps/web-e2e/test-results/
 apps/web-e2e/playwright-report/
+
+# Medya depolama (private, repoya girmez)
+apps/api/.media-storage/

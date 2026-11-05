@@ -131,7 +131,12 @@ export class AuthService {
     const normalizedEmail = email.toLowerCase();
 
     // Rate limit: IP başına 30/15dk, e-posta başına 5/15dk (docs/07: artan gecikme + limit).
-    const ipResult = this.rateLimiter.consume(`login:ip:${meta.ip}`, 30, 15 * 60_000);
+        // Limitler env ile ayarlanabilir: yerel geliştirme/e2e koşumlarında yüksek değer,
+    // üretim varsayılanı docs/07 (e-posta başına 5/15dk) olarak kalır. Lazy okunur.
+    const loginIpLimit = Number(process.env.AUTH_LOGIN_IP_RATE_LIMIT ?? 30);
+    const loginEmailLimit = Number(process.env.AUTH_LOGIN_EMAIL_RATE_LIMIT ?? 5);
+    const loginWindowMs = 15 * 60_000;
+    const ipResult = this.rateLimiter.consume(`login:ip:${meta.ip}`, loginIpLimit, loginWindowMs);
     if (!ipResult.allowed) {
       await this.audit.record({
         action: 'auth.login_rate_limited',
@@ -146,7 +151,7 @@ export class AuthService {
         message: `Çok fazla deneme. ${ipResult.retryAfterSeconds} saniye sonra tekrar deneyin.`,
       });
     }
-    const emailResult = this.rateLimiter.consume(`login:email:${normalizedEmail}`, 5, 15 * 60_000);
+    const emailResult = this.rateLimiter.consume(`login:email:${normalizedEmail}`, loginEmailLimit, loginWindowMs);
     if (!emailResult.allowed) {
       await this.audit.record({
         action: 'auth.login_rate_limited',

@@ -261,3 +261,103 @@ export const tasksApi = {
   addComment: (token: string, id: string, body: string) =>
     apiFetch<TaskCommentDto>(`/tasks/${id}/comments`, { method: 'POST', body: { body }, token }),
 };
+
+// ---------- Günlük raporlar ve medya (Faz 05) ----------
+
+import type { DailyReportDto, DailyReportDetailDto, MediaUploadUrlResponse, MediaDownloadUrlResponse } from '@santiyepro/contracts';
+export type { DailyReportDto, DailyReportDetailDto, MediaUploadUrlResponse, MediaDownloadUrlResponse };
+
+export interface DailyReportsListResponse {
+  data: DailyReportDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface DailyReportListParams {
+  page?: number;
+  projectId?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  sort?: 'createdAt' | 'reportDate';
+  order?: 'asc' | 'desc';
+}
+
+/** API'den dönen göreli medya URL'ini API köküne çözer (tarayıcı için). */
+export function resolveMediaUrl(relativePath: string): string {
+  if (/^https?:\/\//.test(relativePath)) return relativePath;
+  const origin = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+  return `${origin}${relativePath}`;
+}
+
+export const mediaApi = {
+  requestUploadUrl: (
+    token: string,
+    input: { filename: string; mimeType: string; sizeBytes: number; projectId: string },
+  ) => apiFetch<MediaUploadUrlResponse>('/media/upload-url', { method: 'POST', body: input, token }),
+  /** İmzalı PUT URL'ine ikili gövde yükler (auth header taşınmaz — imza yeterlidir). */
+  uploadBinary: async (uploadUrl: string, file: Blob): Promise<void> => {
+    const res = await fetch(resolveMediaUrl(uploadUrl), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: file,
+    });
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+      throw new ApiError(res.status, 'VALIDATION_ERROR', payload.error?.message ?? 'Dosya yüklenemedi');
+    }
+  },
+  complete: (token: string, mediaId: string) =>
+    apiFetch<MediaDownloadUrlResponse>('/media/complete', { method: 'POST', body: { mediaId }, token }),
+  downloadUrl: (token: string, mediaId: string) =>
+    apiFetch<MediaDownloadUrlResponse>(`/media/${mediaId}/download-url`, { token }),
+};
+
+export interface WorkerRowInput {
+  name: string;
+  jobTitle?: string;
+  workerCount: number;
+  hours: string;
+}
+
+export interface SaveDailyReportInput {
+  projectId: string;
+  siteId?: string;
+  reportDate: string;
+  weather?: string;
+  workSummary: string;
+  workforceSummary?: string;
+  equipmentSummary?: string;
+  issues?: string;
+  safetyNotes?: string;
+  nextDayPlan?: string;
+  workers?: WorkerRowInput[];
+  mediaIds?: string[];
+}
+
+export const dailyReportsApi = {
+  list: (token: string, params: DailyReportListParams = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', '20');
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.status) qs.set('status', params.status);
+    if (params.dateFrom) qs.set('dateFrom', params.dateFrom);
+    if (params.dateTo) qs.set('dateTo', params.dateTo);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.order) qs.set('order', params.order);
+    return apiFetch<DailyReportsListResponse>(`/daily-reports?${qs.toString()}`, { token });
+  },
+  get: (token: string, id: string) => apiFetch<DailyReportDetailDto>(`/daily-reports/${id}`, { token }),
+  create: (token: string, input: SaveDailyReportInput) =>
+    apiFetch<DailyReportDto>('/daily-reports', { method: 'POST', body: input, token }),
+  update: (token: string, id: string, patch: Partial<SaveDailyReportInput>) =>
+    apiFetch<DailyReportDto>(`/daily-reports/${id}`, { method: 'PATCH', body: patch, token }),
+  submit: (token: string, id: string) =>
+    apiFetch<DailyReportDto>(`/daily-reports/${id}/submit`, { method: 'POST', body: {}, token }),
+  approve: (token: string, id: string) =>
+    apiFetch<DailyReportDto>(`/daily-reports/${id}/approve`, { method: 'POST', body: {}, token }),
+  reject: (token: string, id: string, reason: string) =>
+    apiFetch<DailyReportDto>(`/daily-reports/${id}/reject`, { method: 'POST', body: { reason }, token }),
+  reopen: (token: string, id: string) =>
+    apiFetch<DailyReportDto>(`/daily-reports/${id}/reopen`, { method: 'POST', body: {}, token }),
+};

@@ -72,6 +72,10 @@ model User {
   taskComments   TaskComment[]
   taskStatusChanges TaskStatusHistory[] @relation("TaskStatusChanger")
   notifications  Notification[]
+  createdDailyReports DailyReport[]      @relation("DailyReportCreator")
+  approvedDailyReports DailyReport[]     @relation("DailyReportApprover")
+  dailyReportRevisions DailyReportRevision[] @relation("DailyReportRevisionAuthor")
+  mediaFiles     MediaFile[]
 
   @@index([status])
 }
@@ -101,6 +105,7 @@ model Project {
   members  ProjectMember[]
   sites    Site[]
   tasks    Task[]
+  dailyReports DailyReport[]
 
   @@index([status])
   @@index([name])
@@ -118,6 +123,7 @@ model Site {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks   Task[]
+  dailyReports DailyReport[]
 
   @@unique([projectId, name])
   @@index([projectId])
@@ -205,6 +211,124 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
 }
+
+enum DailyReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum MediaScanStatus {
+  /// upload-url üretilip dosya henüz yüklenmedi
+  PENDING
+  /// yüklendi, EXIF soyuldu, magic-byte doğrulandı
+  CLEAN
+  /// reddedildi (tür/boyut uyumsuz vb.)
+  FLAGGED
+}
+
+/// Günlük şantiye raporu (Faz 05) — docs/04; durum akışı docs/05.
+/// Rapor tarihi PostgreSQL DATE kolonunda (timezone-safe).
+model DailyReport {
+  id                String            @id @default(cuid())
+  projectId         String
+  siteId            String?
+  reportDate        DateTime          @db.Date
+  weather           String?
+  workSummary       String
+  workforceSummary  String?
+  equipmentSummary  String?
+  issues            String?
+  safetyNotes       String?
+  nextDayPlan       String?
+  status            DailyReportStatus @default(DRAFT)
+  /// Snapshot alındıkça artar; revizyon geçmişi DailyReportRevision'dadır.
+  revisionNo        Int               @default(0)
+  createdById       String
+  submittedAt       DateTime?
+  approvedById      String?
+  approvedAt        DateTime?
+  rejectedReason    String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  site       Site?   @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  createdBy  User    @relation("DailyReportCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  approvedBy User?   @relation("DailyReportApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  workers   DailyReportWorker[]
+  media     DailyReportMedia[]
+  revisions DailyReportRevision[]
+
+  @@index([projectId, reportDate])
+  @@index([status])
+}
+
+/// Rapordaki ekip/personel özeti (Personel modülü sonraki fazlarda bağlanır).
+model DailyReportWorker {
+  id          String  @id @default(cuid())
+  reportId    String
+  name        String
+  jobTitle    String?
+  workerCount Int     @default(1)
+  hours       Decimal @db.Decimal(5, 2)
+
+  report DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+}
+
+/// Önceki içerik snapshot'ı — append-only; onaylı/gönderilmiş rapor düzenlenince oluşur.
+model DailyReportRevision {
+  id          String   @id @default(cuid())
+  reportId    String
+  /// Snapshot'ın alındığı revizyon numarası (düzenleme öncesi değer).
+  revisionNo  Int
+  snapshot    Json
+  contentHash String
+  createdById String
+  createdAt   DateTime @default(now())
+
+  report    DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  createdBy User        @relation("DailyReportRevisionAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([reportId, revisionNo])
+  @@index([reportId])
+}
+
+/// Rapor–medya ilişkisi (ek sırası korunur).
+model DailyReportMedia {
+  reportId  String
+  mediaId   String
+  sortOrder Int     @default(0)
+
+  report DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  media  MediaFile   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([reportId, mediaId])
+  @@index([reportId])
+}
+
+/// Medya dosyası — private depoda, sunucu üretimi storageKey ile (docs/07).
+/// storageKey istemciye asla dönmez; erişim yalnızca kısa ömürlü imzalı URL ile.
+model MediaFile {
+  id           String          @id @default(cuid())
+  projectId    String?
+  storageKey   String          @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int             @default(0)
+  checksum     String?
+  scanStatus   MediaScanStatus @default(PENDING)
+  uploadedById String
+  createdAt    DateTime        @default(now())
+
+  uploader User    @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  reports  DailyReportMedia[]
+}
+
 
 model Role {
   id       String  @id @default(cuid())
