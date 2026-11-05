@@ -1,0 +1,14 @@
+{
+  "extends": "@santiyepro/config/tsconfig.react-native.json",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "allowImportingTsExtensions": true,
+    "types": ["jest", "node"]
+  },
+  "include": ["App.tsx", "index.ts", "src/**/*.ts", "src/**/*.tsx", "__tests__/**/*.ts?(x)", "babel.config.js"],
+  "exclude": ["node_modules"]
+}

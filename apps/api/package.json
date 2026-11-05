@@ -1,0 +1,49 @@
+{
+  "name": "@santiyepro/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ŞantiyePro API — NestJS + Prisma (modüler monolit)",
+  "type": "module",
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "lint": "eslint \"{src,test}/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.3.3",
+    "@nestjs/config": "12.1.0",
+    "@nestjs/core": "12.3.3",
+    "@nestjs/platform-express": "12.3.3",
+    "@nestjs/swagger": "12.1.0",
+    "@prisma/client": "6.19.0",
+    "@santiyepro/contracts": "workspace:*",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "dotenv": "^18.0.9",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "12.0.11",
+    "@nestjs/testing": "12.3.3",
+    "@santiyepro/config": "workspace:*",
+    "@types/express": "^5.0.1",
+    "@types/node": "^24.0.0",
+    "@types/supertest": "^6.0.2",
+    "eslint": "^9.17.0",
+    "prisma": "6.19.0",
+    "supertest": "^7.3.1",
+    "tslib": "^2.8.1",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.19.0",
+    "vitest": "^4.1.2"
+  }
+}

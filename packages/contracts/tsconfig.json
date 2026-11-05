@@ -1,0 +1,9 @@
+{
+  "extends": "@santiyepro/config/tsconfig.node.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true
+  },
+  "include": ["src", "test", "vitest.config.ts", "eslint.config.mjs"]
+}

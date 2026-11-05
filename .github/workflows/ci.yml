@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality-gate:
+    name: lint + typecheck + test + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.16.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build (contracts önce, sonra uygulamalar)
+        run: pnpm build
+
+      - name: Test (API birim + e2e, contracts, web, mobil)
+        run: |
+          pnpm --filter @santiyepro/contracts test
+          pnpm --filter @santiyepro/api test
+          pnpm --filter @santiyepro/api test:e2e
+          pnpm --filter @santiyepro/web test
+          pnpm --filter @santiyepro/mobile test
+
+      # PostgreSQL bağımlı entegrasyon testleri Faz 02'den itibaren servis konteyneriyle koşulur:
+      # services:
+      #   postgres:
+      #     image: postgres:16-alpine
+      #     env:
+      #       POSTGRES_USER: santiyepro
+      #       POSTGRES_PASSWORD: santiyepro
+      #       POSTGRES_DB: santiyepro_test
+      #     options: >-
+      #       --health-cmd "pg_isready -U santiyepro" --health-interval 5s --health-retries 10

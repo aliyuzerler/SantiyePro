@@ -1,0 +1,41 @@
+# Bağımlılıklar
+node_modules/
+.pnpm-store/
+
+# Derleme çıktıları
+dist/
+.next/
+out/
+build/
+*.tsbuildinfo
+.expo/
+web-build/
+
+# Ortam dosyaları — gerçek secret'lar repoya girmez
+.env
+.env.*
+!.env.example
+
+# Yerel PostgreSQL veri dizini (sandbox/yerel geliştirme)
+.localpg/
+*.pid
+
+# Test çıktıları
+coverage/
+jest-cache/
+
+# İşletim sistemi ve editör
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Loglar
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Docker volume verileri
+infra/docker/data/

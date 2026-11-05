@@ -1,0 +1,48 @@
+# ============================================================
+# ŞantiyePro — Geliştirme Compose profili (yalnızca altyapı)
+# Sadece PostgreSQL ve MinIO ayağa kalkar; API/web yerelde
+# pnpm dev komutlarıyla çalıştırılır.
+# Kullanım: docker compose -f infra/docker/compose.dev.yml up -d
+# ============================================================
+
+name: santiyepro-dev
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-santiyepro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-santiyepro}
+      POSTGRES_DB: ${POSTGRES_DB:-santiyepro}
+    ports:
+      - "${DB_HOST_PORT:-5433}:5432"
+    volumes:
+      - db-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-santiyepro} -d ${POSTGRES_DB:-santiyepro}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  object-storage:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-santiyepro-dev}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-santiyepro-dev-secret}
+    ports:
+      - "${S3_HOST_PORT:-9000}:9000"
+      - "${S3_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-dev-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-dev-data:
+  minio-dev-data:

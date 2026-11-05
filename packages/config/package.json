@@ -1,0 +1,13 @@
+{
+  "name": "@santiyepro/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ortak TypeScript/ESLint/Prettier yapılandırması",
+  "files": ["tsconfig.node.json", "tsconfig.react.json", "tsconfig.react-native.json", "eslint.base.mjs", "README.md"],
+  "exports": {
+    "./eslint": "./eslint.base.mjs",
+    "./tsconfig.node.json": "./tsconfig.node.json",
+    "./tsconfig.react.json": "./tsconfig.react.json",
+    "./tsconfig.react-native.json": "./tsconfig.react-native.json"
+  }
+}

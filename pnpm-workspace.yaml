@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Postinstall script'e izin verilen bağımlılıklar (pnpm 12 güvenlik varsayılanı)
+onlyBuiltDependencies:
+  - "@embedded-postgres/linux-x64"
+  - "@parcel/watcher"
+  - "@prisma/client"
+  - "@prisma/engines"
+  - "prisma"

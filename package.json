@@ -1,0 +1,34 @@
+{
+  "name": "santiyepro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ŞantiyePro — şantiye ve inşaat takip ürünü (mobil saha uygulaması + web yönetim paneli + API)",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "embedded-postgres": "17.9.0-beta.17"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@embedded-postgres/linux-x64",
+      "@parcel/watcher",
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma"
+    ]
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @santiyepro/api dev",
+    "dev:web": "pnpm --filter @santiyepro/web dev",
+    "dev:mobile": "pnpm --filter @santiyepro/mobile start",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "local:pg": "node infra/scripts/local-postgres.mjs up",
+    "local:pg:stop": "node infra/scripts/local-postgres.mjs stop",
+    "local:pg:reset": "node infra/scripts/local-postgres.mjs reset"
+  }
+}

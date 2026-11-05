@@ -1,0 +1,14 @@
+dist
+node_modules
+.next
+coverage
+.expo
+pnpm-lock.yaml
+package-lock.json
+bun.lock
+design
+docs
+prompts
+rules
+skills
+*.md

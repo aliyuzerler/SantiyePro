@@ -1,0 +1,14 @@
+{
+  "extends": "@santiyepro/config/tsconfig.node.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "incremental": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*", "test/**/*", "vitest.config.ts", "vitest.e2e.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

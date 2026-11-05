@@ -1,0 +1,29 @@
+# Caddy geliştirme/yerel örnek yapılandırma.
+# Üretimde: müşteri domain adresi girilmeli; Caddy otomatik TLS üretir.
+# API dışarıya /api/* önekiyle, web kökten yayınlanır.
+
+{$SITE_ADDRESS:localhost} {
+	# API — NestJS
+	handle /api/* {
+		reverse_proxy api:4000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# Web paneli — Next.js
+	handle {
+		reverse_proxy web:3100 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# GÜVENLİK (docs/07): hassas başlıklar
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}

@@ -1,0 +1,15 @@
+// ŞantiyePro — Prisma şema (Faz 00)
+//
+// Veri modeli taslağı: docs/04-data-model.md
+// Faz 00 kapsamında iş modeli yoktur (agents.md: "Bu fazda auth veya iş modülü yazma").
+// İlk modeller Faz 02'de (User/Role/Permission/ProjectMember) migration ile gelir.
+// Tüm modellerde UUID/CUID PK, createdAt, updatedAt, gerektiğinde deletedAt kullanılacaktır.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

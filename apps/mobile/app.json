@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "ŞantiyePro",
+    "slug": "santiyepro",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "platforms": ["ios", "android"],
+    "android": {
+      "package": "com.santiyepro.app",
+      "edgeToEdgeEnabled": true
+    },
+    "ios": {
+      "bundleIdentifier": "com.santiyepro.app",
+      "supportsTablet": true
+    },
+    "privacy": "public",
+    "extra": {
+      "apiBaseUrl": "http://localhost:4000/api/v1"
+    }
+  }
+}
