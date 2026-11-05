@@ -321,3 +321,74 @@ export const mediaApi = {
   complete: (token: string, mediaId: string) =>
     request<MediaDownloadUrlResponse>('/media/complete', { method: 'POST', body: { mediaId }, token }),
 };
+
+// ---------- Personel ve puantaj (Faz 06) ----------
+
+import type {
+  AttendanceRecordDto,
+  BulkAttendancePreviewResponse,
+  PersonnelDto,
+} from '@santiyepro/contracts';
+export type { AttendanceRecordDto, BulkAttendancePreviewResponse, PersonnelDto };
+
+export interface PersonnelListResponse {
+  data: PersonnelDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export const personnelApi = {
+  list: (token: string, params: { search?: string; status?: string } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+    qs.set('pageSize', '100');
+    if (params.search) qs.set('search', params.search);
+    if (params.status) qs.set('status', params.status);
+    return request<PersonnelListResponse>(`/personnel?${qs.toString()}`, { token });
+  },
+};
+
+export interface AttendanceListResponse {
+  data: AttendanceRecordDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface AttendanceStatusesResponse {
+  statuses: string[];
+  labels: Record<string, string>;
+}
+
+export const attendanceApi = {
+  statuses: (token: string) => request<AttendanceStatusesResponse>('/attendance/statuses', { token }),
+  list: (token: string, params: { projectId?: string; workDate?: string; personnelId?: string; shiftKey?: string } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+    qs.set('pageSize', '100');
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.workDate) qs.set('workDate', params.workDate);
+    if (params.personnelId) qs.set('personnelId', params.personnelId);
+    if (params.shiftKey) qs.set('shiftKey', params.shiftKey);
+    return request<AttendanceListResponse>(`/attendance?${qs.toString()}`, { token });
+  },
+  create: (
+    token: string,
+    input: {
+      projectId: string;
+      personnelId: string;
+      workDate: string;
+      shiftKey?: string;
+      status: string;
+      note?: string | null;
+      clientMutationId?: string;
+    },
+  ) => request<{ record: AttendanceRecordDto; replayed: boolean }>('/attendance', { method: 'POST', body: input, token }),
+  update: (token: string, id: string, patch: { status?: string; note?: string | null }) =>
+    request<AttendanceRecordDto>(`/attendance/${id}`, { method: 'PATCH', body: patch, token }),
+  bulkPreview: (
+    token: string,
+    input: { projectId: string; workDate: string; shiftKey?: string; status: string; personnelIds: string[] },
+  ) => request<BulkAttendancePreviewResponse>('/attendance/bulk/preview', { method: 'POST', body: input, token }),
+  bulkConfirm: (
+    token: string,
+    input: { projectId: string; workDate: string; shiftKey?: string; status: string; personnelIds: string[]; confirm: true },
+  ) => request<BulkAttendancePreviewResponse>('/attendance/bulk', { method: 'POST', body: input, token }),
+};

@@ -8,6 +8,9 @@ import { ProjectsModule } from './modules/projects/projects.module.js';
 import { TasksModule } from './modules/tasks/tasks.module.js';
 import { MediaModule } from './modules/media/media.module.js';
 import { DailyReportsModule } from './modules/daily-reports/daily-reports.module.js';
+import { PersonnelModule } from './modules/personnel/personnel.module.js';
+import { AttendanceModule } from './modules/attendance/attendance.module.js';
+import { OrgSettingsModule } from './modules/org/org-settings.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { CommonModule } from './common/common.module.js';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard.js';
@@ -19,6 +22,8 @@ import { PermissionsGuard } from './common/auth/permissions.guard.js';
  * Faz 03: Projects/Sites/ProjectMembers (kapsamlı liste, arşivleme, IDOR koruması).
  * Faz 04: Tasks (durum makinesi, checklist, yorum, durum geçmişi, atama bildirimi).
  * Faz 05: Media (private depo + imzalı URL) ve DailyReports (taslak→gönder→onay/red + revizyon).
+ * Faz 06: Personnel (pasife alma) + Attendance (duplicate engelli işaretleme,
+ *         toplu önizleme/onay, özet) + OrgSettings (özel devam durumları).
  * Global guard sırası: kimlik doğrulama → izin kontrolü (deny-by-default).
  */
 @Module({
@@ -36,6 +41,9 @@ import { PermissionsGuard } from './common/auth/permissions.guard.js';
     TasksModule,
     MediaModule,
     DailyReportsModule,
+    PersonnelModule,
+    AttendanceModule,
+    OrgSettingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

@@ -55,7 +55,7 @@ export function RecordMenuSheet({ visible, onClose, options, onSelect }: RecordM
 
 export const RECORD_OPTIONS: RecordOption[] = [
   { key: 'daily-report', label: 'Günlük rapor', phaseNote: 'Faz 05 ile aktif', enabled: true },
-  { key: 'attendance', label: 'Puantaj', phaseNote: 'Faz 06 ile aktif', enabled: false },
+  { key: 'attendance', label: 'Puantaj', phaseNote: 'Satır bazlı hızlı işaretleme', enabled: true },
   { key: 'stock-movement', label: 'Malzeme hareketi', phaseNote: 'Faz 07 ile aktif', enabled: false },
   { key: 'expense', label: 'Gider', phaseNote: 'Faz 08 ile aktif', enabled: false },
   { key: 'photo-progress', label: 'Fotoğraf / ilerleme', phaseNote: 'Faz 05 ile aktif', enabled: false },

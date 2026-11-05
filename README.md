@@ -96,17 +96,17 @@ Geliştirme `prompts/README.md` içindeki faz sırasına göre yürür; her faz 
 | 00 | Monorepo iskeleti, CI, yerel PostgreSQL, health uçları | ✅ Tamamlandı |
 | 01 | Tasarım sistemi, token paritesi, web panel kabuğu + mobil kabuk | ✅ Tamamlandı |
 | 02 | Kimlik doğrulama, kullanıcılar, RBAC, denetim günlüğü | ✅ Tamamlandı |
-| 03 | Projeler ve ekip yönetimi | 🔄 Devam ediyor |
-| 04 | Görevler | ⬜ |
-| 05 | Günlük raporlar ve medya | ⬜ |
-| 06 | Puantaj | ⬜ |
+| 03 | Projeler ve ekip yönetimi | ✅ Tamamlandı |
+| 04 | Görevler | ✅ Tamamlandı |
+| 05 | Günlük raporlar ve medya | ✅ Tamamlandı |
+| 06 | Personel ve puantaj | ✅ Tamamlandı |
 | 07 | Depo / stok | ⬜ |
 | 08 | Giderler ve hakedişler | ⬜ |
 | 09 | Çevrimdışı senkronizasyon | ⬜ |
 | 10 | Raporlar, denetim görünümleri, yedekleme | ⬜ |
 | 11 | Üretim sertleştirme | ⬜ |
 
-Faz raporları: [phase-00](docs/test-reports/phase-00.md) · [phase-01](docs/test-reports/phase-01.md) · [phase-02](docs/test-reports/phase-02.md)
+Faz raporları: [phase-00](docs/test-reports/phase-00.md) · [phase-01](docs/test-reports/phase-01.md) · [phase-02](docs/test-reports/phase-02.md) · [phase-03](docs/test-reports/phase-03.md) · [phase-04](docs/test-reports/phase-04.md) · [phase-05](docs/test-reports/phase-05.md) · [phase-06](docs/test-reports/phase-06.md)
 
 ## 🚀 Hızlı Başlangıç
 
@@ -159,16 +159,16 @@ kapanmadan **gerçek ortamda** koşar — gerçek UI girişi, menüdeki 11 modü
 mobil drawer akışı ve fazın kendi kritik akışı (gerçek mock'suz API + PostgreSQL).
 Ayrıntılar: [`docs/process/canli-test-standardi.md`](docs/process/canli-test-standardi.md).
 
-**Mevcut test envanteri (Faz 05 itibarıyla — 228 test + canlı E2E):**
+**Mevcut test envanteri (Faz 06 itibarıyla — 273 test + canlı E2E):**
 
 | Paket | Araç | Kapsam |
 | --- | --- | --- |
-| `packages/contracts` | Vitest | Token paritesi + görev/rapor durum makineleri, gecikme, izin matrisi, medya allowlist (27 test) |
+| `packages/contracts` | Vitest | Token paritesi + görev/rapor durum makineleri, gecikme, izin matrisi, medya allowlist, **puantaj sözleşmeleri** (37 test) |
 | `apps/api` | Vitest | Health + auth birim + medya güvenliği (EXIF strip, magic sniff, imzalı URL) (17 test) |
-| `apps/api` e2e | Vitest + gerçek PostgreSQL | auth 17 + görev 21 + **günlük rapor 11 + medya 12** + proje 16 + health 5 = 82 e2e |
-| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI, oturum, kullanıcı, proje, görev, **rapor listesi/detay/galeri** (50 test) |
-| `apps/mobile` | Jest + RNTL | UI, oturum, kabuk, proje, görev, **günlük rapor formu + çevrimdışı medya kuyruğu** (52 test) |
-| `apps/web-e2e` | **Playwright (canlı)** | API sağlık, kabuk + drawer, görev ve **rapor kritik akışları** (15 koşu) |
+| `apps/api` e2e | Vitest + gerçek PostgreSQL | auth 17 + görev 21 + günlük rapor 11 + medya 12 + proje 16 + **puantaj 23** + health 5 = 105 e2e |
+| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI, oturum, kullanıcı, proje, görev, rapor listesi/detay/galeri (50 test) |
+| `apps/mobile` | Jest + RNTL | UI, oturum, kabuk, proje, görev, rapor formu, medya kuyruğu, **puantaj ekranı + çevrimdışı puantaj kuyruğu** (64 test) |
+| `apps/web-e2e` | **Playwright (canlı)** | API sağlık, kabuk + drawer, görev, rapor ve **puantaj kritik akışları** (18 koşu) |
 
 Yerel tam yığın doğrulama (Docker'sız):
 

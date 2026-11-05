@@ -58,6 +58,7 @@ export * from './projects.js';
 export * from './tasks.js';
 export * from './media.js';
 export * from './dailyreports.js';
+export * from './attendance.js';
 
 // ---------- Ortak alanlar ----------
 

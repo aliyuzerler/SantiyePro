@@ -12,13 +12,17 @@ describe('RecordMenuSheet (+ Kayıt menüsü)', () => {
     expect(screen.getByText('Fotoğraf / ilerleme')).toBeTruthy();
   });
 
-  it('günlük rapor Faz 05 ile aktif; henüz gelmeyen modüller devre dışı ve faz bilgili', async () => {
+  it('günlük rapor ve puantaj aktif; henüz gelmeyen modüller devre dışı ve faz bilgili', async () => {
     const screen = await render(<RecordMenuSheet visible onClose={() => {}} options={RECORD_OPTIONS} />);
-    // Faz 05: günlük rapor artık etkin (Faz 05 notu etiketten düşer)
+    // Faz 05: günlük rapor aktif; Faz 06: puantaj aktif (satır bazlı hızlı işaretleme)
     const daily = screen.getByLabelText('Günlük rapor');
     expect(daily.props.accessibilityState).toMatchObject({ disabled: false });
-    const attendance = screen.getByLabelText('Puantaj (Faz 06 ile aktif)');
-    expect(attendance.props.accessibilityState).toMatchObject({ disabled: true });
+    // Aktif seçeneklerde faz notu etikete eklenmez (yalnızca devre dışılar bilgi taşır)
+    const attendance = screen.getByLabelText('Puantaj');
+    expect(attendance.props.accessibilityState).toMatchObject({ disabled: false });
+    // Sonraki fazlar hâlâ devre dışı
+    const stock = screen.getByLabelText('Malzeme hareketi (Faz 07 ile aktif)');
+    expect(stock.props.accessibilityState).toMatchObject({ disabled: true });
   });
 
   it('kapatma aksiyonu çalışır', async () => {

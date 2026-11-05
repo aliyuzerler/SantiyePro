@@ -43,6 +43,9 @@ describe('Daily reports (e2e)', () => {
   let prj2 = '';
 
   beforeAll(async () => {
+    await prisma.attendanceRecord.deleteMany();
+    await prisma.personnel.deleteMany();
+    await prisma.orgSettings.deleteMany();
     await prisma.dailyReportRevision.deleteMany();
     await prisma.dailyReportMedia.deleteMany();
     await prisma.dailyReportWorker.deleteMany();

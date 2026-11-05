@@ -124,6 +124,7 @@ export interface ProjectsListResponse {
 
 export interface ProjectListParams {
   page?: number;
+  pageSize?: number;
   search?: string;
   status?: string;
   sort?: 'createdAt' | 'name' | 'code';
@@ -139,7 +140,7 @@ export const projectsApi = {
   list: (token: string, params: ProjectListParams = {}) => {
     const qs = new URLSearchParams();
     qs.set('page', String(params.page ?? 1));
-    qs.set('pageSize', '20');
+    qs.set('pageSize', String(params.pageSize ?? 20));
     if (params.search) qs.set('search', params.search);
     if (params.status) qs.set('status', params.status);
     if (params.sort) qs.set('sort', params.sort);
@@ -360,4 +361,142 @@ export const dailyReportsApi = {
     apiFetch<DailyReportDto>(`/daily-reports/${id}/reject`, { method: 'POST', body: { reason }, token }),
   reopen: (token: string, id: string) =>
     apiFetch<DailyReportDto>(`/daily-reports/${id}/reopen`, { method: 'POST', body: {}, token }),
+};
+
+// ---------- Personel ve puantaj (Faz 06) ----------
+
+import type {
+  AttendanceRecordDto,
+  AttendanceSummaryResponse,
+  BulkAttendancePreviewResponse,
+  OrgSettingsDto,
+  PersonnelDto,
+} from '@santiyepro/contracts';
+export type {
+  AttendanceRecordDto,
+  AttendanceSummaryResponse,
+  BulkAttendancePreviewResponse,
+  OrgSettingsDto,
+  PersonnelDto,
+};
+
+export interface PersonnelListResponse {
+  data: PersonnelDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export const personnelApi = {
+  list: (token: string, params: { page?: number; search?: string; status?: string } = {}) => {
+    const qs = new URLSearchParams();
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', '100');
+    if (params.search) qs.set('search', params.search);
+    if (params.status) qs.set('status', params.status);
+    return apiFetch<PersonnelListResponse>(`/personnel?${qs.toString()}`, { token });
+  },
+  create: (
+    token: string,
+    input: {
+      employeeCode?: string;
+      fullName: string;
+      phone?: string;
+      jobTitle?: string;
+      companyOrSubcontractor?: string;
+    },
+  ) => apiFetch<PersonnelDto>('/personnel', { method: 'POST', body: input, token }),
+  update: (
+    token: string,
+    id: string,
+    patch: {
+      employeeCode?: string | null;
+      fullName?: string;
+      phone?: string | null;
+      jobTitle?: string | null;
+      companyOrSubcontractor?: string | null;
+      status?: 'ACTIVE' | 'PASSIVE';
+    },
+  ) => apiFetch<PersonnelDto>(`/personnel/${id}`, { method: 'PATCH', body: patch, token }),
+};
+
+export interface AttendanceListResponse {
+  data: AttendanceRecordDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface AttendanceStatusesResponse {
+  statuses: string[];
+  labels: Record<string, string>;
+}
+
+export const attendanceApi = {
+  statuses: (token: string) => apiFetch<AttendanceStatusesResponse>('/attendance/statuses', { token }),
+  orgSettings: (token: string) => apiFetch<OrgSettingsDto>('/org/settings', { token }),
+  list: (
+    token: string,
+    params: { projectId?: string; workDate?: string; personnelId?: string; shiftKey?: string } = {},
+  ) => {
+    const qs = new URLSearchParams();
+    qs.set('page', '1');
+    qs.set('pageSize', '100');
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.workDate) qs.set('workDate', params.workDate);
+    if (params.personnelId) qs.set('personnelId', params.personnelId);
+    if (params.shiftKey) qs.set('shiftKey', params.shiftKey);
+    return apiFetch<AttendanceListResponse>(`/attendance?${qs.toString()}`, { token });
+  },
+  create: (
+    token: string,
+    input: {
+      projectId: string;
+      siteId?: string | null;
+      personnelId: string;
+      workDate: string;
+      shiftKey?: string;
+      status: string;
+      checkInAt?: string | null;
+      checkOutAt?: string | null;
+      workedMinutes?: number | null;
+      note?: string | null;
+    },
+  ) => apiFetch<{ record: AttendanceRecordDto; replayed: boolean }>('/attendance', { method: 'POST', body: input, token }),
+  update: (
+    token: string,
+    id: string,
+    patch: {
+      siteId?: string | null;
+      status?: string;
+      checkInAt?: string | null;
+      checkOutAt?: string | null;
+      workedMinutes?: number | null;
+      note?: string | null;
+    },
+  ) => apiFetch<AttendanceRecordDto>(`/attendance/${id}`, { method: 'PATCH', body: patch, token }),
+  bulkPreview: (
+    token: string,
+    input: {
+      projectId: string;
+      workDate: string;
+      shiftKey?: string;
+      status: string;
+      personnelIds: string[];
+      note?: string | null;
+    },
+  ) => apiFetch<BulkAttendancePreviewResponse>('/attendance/bulk/preview', { method: 'POST', body: input, token }),
+  bulkConfirm: (
+    token: string,
+    input: {
+      projectId: string;
+      workDate: string;
+      shiftKey?: string;
+      status: string;
+      personnelIds: string[];
+      note?: string | null;
+      confirm: true;
+    },
+  ) => apiFetch<BulkAttendancePreviewResponse>('/attendance/bulk', { method: 'POST', body: input, token }),
+  summary: (token: string, projectId: string, dateFrom: string, dateTo: string) =>
+    apiFetch<AttendanceSummaryResponse>(
+      `/attendance/summary?projectId=${projectId}&dateFrom=${dateFrom}&dateTo=${dateTo}`,
+      { token },
+    ),
 };

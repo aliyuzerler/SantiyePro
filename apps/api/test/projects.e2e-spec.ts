@@ -45,6 +45,9 @@ describe('Projects & Sites (e2e)', () => {
   let techUserId = '';
 
   beforeAll(async () => {
+    await prisma.attendanceRecord.deleteMany();
+    await prisma.personnel.deleteMany();
+    await prisma.orgSettings.deleteMany();
     await prisma.site.deleteMany();
     await prisma.project.deleteMany();
     // Faz 04 tabloları (FK zinciri: Restrict ilişkiler önce temizlenir)

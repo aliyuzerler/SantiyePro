@@ -10,6 +10,7 @@ import { ProjectsScreen } from '../screens/ProjectsScreen';
 import { TasksScreen } from '../screens/TasksScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { DailyReportFormScreen } from '../screens/DailyReportFormScreen';
+import { AttendanceScreen } from '../screens/AttendanceScreen';
 import { RecordMenuSheet, RECORD_OPTIONS } from '../components/RecordMenuSheet';
 import { colors, touch } from '../theme/tokens';
 
@@ -26,6 +27,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 export function RootTabs() {
   const [recordMenuOpen, setRecordMenuOpen] = useState(false);
   const [reportFormOpen, setReportFormOpen] = useState(false);
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
 
   const tabBar = (props: BottomTabBarProps) => (
     <View style={styles.tabBarWrap}>
@@ -73,11 +75,17 @@ export function RootTabs() {
         onSelect={(option) => {
           setRecordMenuOpen(false);
           if (option.key === 'daily-report') setReportFormOpen(true);
+          if (option.key === 'attendance') setAttendanceOpen(true);
         }}
       />
       {reportFormOpen && (
         <View style={StyleSheet.absoluteFill} testID="daily-report-form-overlay">
           <DailyReportFormScreen onClose={() => setReportFormOpen(false)} />
+        </View>
+      )}
+      {attendanceOpen && (
+        <View style={StyleSheet.absoluteFill} testID="attendance-screen-overlay">
+          <AttendanceScreen onClose={() => setAttendanceOpen(false)} />
         </View>
       )}
     </View>

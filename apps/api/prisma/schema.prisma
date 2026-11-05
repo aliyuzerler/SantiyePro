@@ -1,4 +1,4 @@
-// ŞantiyePro — Prisma şeması (Faz 04: görev yönetimi)
+// ŞantiyePro — Prisma şeması (Faz 06: personel ve puantaj)
 //
 // Veri modeli taslağı: docs/04-data-model.md (User/Role/Permission/UserRole/
 // RolePermission/ProjectMember + oturum ve denetim tabloları).
@@ -49,6 +49,18 @@ enum TaskPriority {
   CRITICAL
 }
 
+enum PersonnelStatus {
+  ACTIVE
+  PASSIVE
+}
+
+/// Kaydın yazıldığı istemci kanalı — audit/sync analizlerinde kullanılır (docs/09).
+enum AttendanceSource {
+  WEB
+  MOBILE
+  API
+}
+
 model User {
   id           String     @id @default(cuid())
   fullName     String
@@ -76,6 +88,8 @@ model User {
   approvedDailyReports DailyReport[]     @relation("DailyReportApprover")
   dailyReportRevisions DailyReportRevision[] @relation("DailyReportRevisionAuthor")
   mediaFiles     MediaFile[]
+  createdPersonnel    Personnel[]        @relation("PersonnelCreator")
+  recordedAttendance  AttendanceRecord[] @relation("AttendanceRecorder")
 
   @@index([status])
 }
@@ -106,6 +120,7 @@ model Project {
   sites    Site[]
   tasks    Task[]
   dailyReports DailyReport[]
+  attendanceRecords AttendanceRecord[]
 
   @@index([status])
   @@index([name])
@@ -124,6 +139,7 @@ model Site {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks   Task[]
   dailyReports DailyReport[]
+  attendanceRecords AttendanceRecord[]
 
   @@unique([projectId, name])
   @@index([projectId])
@@ -445,4 +461,75 @@ model AuditLog {
 
   @@index([entityType, entityId, createdAt])
   @@index([actorUserId, createdAt])
+}
+
+/// Personel (Faz 06) — kurum genelindeki işçi/taşeron kaydı; sert silme yok,
+/// pasife alma vardır (append-only iş kayıtları felsefesi, docs/02).
+/// Kişisel veri minimumda tutulur (docs/06: saha personeli verisi).
+model Personnel {
+  id                     String          @id @default(cuid())
+  /// Sicil numarası — kurum içinde benzersiz (verilirse).
+  employeeCode           String?         @unique
+  fullName               String
+  phone                  String?
+  jobTitle               String?
+  companyOrSubcontractor String?
+  status                 PersonnelStatus @default(ACTIVE)
+  createdById            String
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  createdBy         User              @relation("PersonnelCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  attendanceRecords AttendanceRecord[]
+
+  @@index([status, fullName])
+  @@index([fullName])
+}
+
+/// Puantaj kaydı (Faz 06) — aynı personel/proje/tarih/vardiya için tek satır:
+/// DB unique constraint + servis kontrolü (docs/04 unique örneği).
+/// workDate takvim günüdür (DATE kolonu, timezone-safe); checkIn/Out timestamptz.
+/// status varsayılan 6 durum + kuruma özel anahtarlar (OrgSettings) ile String
+/// olarak doğrulanır — enum'e sabitlemeden genişletilebilirlik (Faz 06 promptu).
+/// GPS alanı YOKTUR: konum toplama varsayılan kapalı, izinli ve görünür
+/// bilgilendirmeyle ancak işlem anında açılabilir (docs/07).
+model AttendanceRecord {
+  id               String           @id @default(cuid())
+  projectId        String
+  siteId           String?
+  personnelId      String
+  workDate         DateTime         @db.Date
+  shiftKey         String           @default("GUNDUZ")
+  status           String           @default("PRESENT")
+  checkInAt        DateTime?
+  checkOutAt       DateTime?
+  workedMinutes    Int?
+  note             String?
+  recordedById     String
+  source           AttendanceSource @default(WEB)
+  /// Çevrimdışı kuyruk idempotency anahtarı (docs/09 outbox ile birebir).
+  clientMutationId String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  site      Site?     @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  personnel Personnel @relation(fields: [personnelId], references: [id], onDelete: Restrict)
+  recordedBy User    @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  /// Duplicate engeli: aynı personel/proje/gün/vardiya tek kayıttır.
+  @@unique([personnelId, projectId, workDate, shiftKey])
+  @@index([projectId, workDate])
+  @@index([personnelId, workDate])
+  @@index([personnelId, projectId, workDate])
+}
+
+/// Kurum ayarları (Faz 06) — tek satırlık singleton; devam durumlarının kurum
+/// tanımlı uzantıları burada tutulur (Faz 06 geliştirme promptu:
+/// "kurum ayarıyla genişletilebilir"). Yalnızca FIRM_SETTINGS_MANAGE değiştirebilir.
+model OrgSettings {
+  id                       String   @id @default("default")
+  /// CustomAttendanceStatus[] — [{ key, label }] Json listesi.
+  attendanceCustomStatuses Json     @default("[]")
+  updatedAt                DateTime @updatedAt
 }

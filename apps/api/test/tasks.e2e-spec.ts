@@ -48,6 +48,9 @@ describe('Tasks (e2e)', () => {
   let prj2 = '';
 
   beforeAll(async () => {
+    await prisma.attendanceRecord.deleteMany();
+    await prisma.personnel.deleteMany();
+    await prisma.orgSettings.deleteMany();
     await prisma.notification.deleteMany();
     await prisma.taskStatusHistory.deleteMany();
     await prisma.taskComment.deleteMany();
