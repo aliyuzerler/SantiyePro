@@ -9,3 +9,10 @@ onlyBuiltDependencies:
   - "@prisma/client"
   - "@prisma/engines"
   - "prisma"
+
+# Faz 11 güvenlik sertleştirmesi: pnpm audit bulgularına karşı minimum sürüm
+# override'ları (prisma transitive effect/deepmerge-ts ve exceljs uuid).
+overrides:
+  "effect": "^3.20.0"
+  "deepmerge-ts": ">=8.0.0"
+  "uuid": ">=11.1.1"

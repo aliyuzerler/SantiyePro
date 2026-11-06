@@ -148,10 +148,9 @@ Geliştirme `prompts/README.md` içindeki faz sırasına göre yürür; her faz 
 | 08 | Gider ve hakediş (onay akışı, fiyat snapshot'ı, net/kesinti, mobil gider kuyruğu) | ✅ Tamamlandı |
 | 09 | Çevrimdışı senkronizasyon (outbox + SQLite, /sync/push-pull, çakışma politikası, kuyruk ekranı) | ✅ Tamamlandı |
 | 10 | Raporlama ve dışa aktarma (7 rapor + PDF/XLSX), denetim günlüğü ekranı, backup/restore | ✅ Tamamlandı |
-| 11 | Üretim sertleştirme | ⬜ |
-| 11 | Üretim sertleştirme | ⬜ |
+| 11 | Üretim sertleştirme ve final release gate (güvenlik başlıkları, CSP, audit taramaları, operasyon dokümanları) | ✅ Tamamlandı |
 
-Faz raporları: [phase-00](docs/test-reports/phase-00.md) · [phase-01](docs/test-reports/phase-01.md) · [phase-02](docs/test-reports/phase-02.md) · [phase-03](docs/test-reports/phase-03.md) · [phase-04](docs/test-reports/phase-04.md) · [phase-05](docs/test-reports/phase-05.md) · [phase-06](docs/test-reports/phase-06.md) · [phase-07](docs/test-reports/phase-07.md) · [phase-08](docs/test-reports/phase-08.md) · [phase-09](docs/test-reports/phase-09.md) · [phase-10](docs/test-reports/phase-10.md)
+Faz raporları: [phase-00](docs/test-reports/phase-00.md) · [phase-01](docs/test-reports/phase-01.md) · [phase-02](docs/test-reports/phase-02.md) · [phase-03](docs/test-reports/phase-03.md) · [phase-04](docs/test-reports/phase-04.md) · [phase-05](docs/test-reports/phase-05.md) · [phase-06](docs/test-reports/phase-06.md) · [phase-07](docs/test-reports/phase-07.md) · [phase-08](docs/test-reports/phase-08.md) · [phase-09](docs/test-reports/phase-09.md) · [phase-10](docs/test-reports/phase-10.md) · [final-release](docs/test-reports/final-release.md) · [release notes](docs/release-notes.md)
 
 ## 🚀 Hızlı Başlangıç
 
@@ -204,13 +203,13 @@ kapanmadan **gerçek ortamda** koşar — gerçek UI girişi, menüdeki 11 modü
 mobil drawer akışı ve fazın kendi kritik akışı (gerçek mock'suz API + PostgreSQL).
 Ayrıntılar: [`docs/process/canli-test-standardi.md`](docs/process/canli-test-standardi.md).
 
-**Mevcut test envanteri (Faz 10 itibarıyla — 443 test + 25 canlı Playwright koşusu):**
+**Mevcut test envanteri (Faz 11 / v1.0.0 itibarıyla — 446 test + 25 canlı Playwright koşusu):**
 
 | Paket | Araç | Kapsam |
 | --- | --- | --- |
 | `packages/contracts` | Vitest | Token paritesi, durum makineleri, izin matrisi, medya allowlist, **finans matematiği: para/odak aritmetiği (BigInt, 2 ondalık HALF_UP), hakediş satır formülü** (83 test) |
-| `apps/api` | Vitest | Health + auth birim + medya güvenliği (EXIF strip, magic sniff, imzalı URL, erken-abort) + **Faz 10: XLSX gerçek hücre tipleri, PDF Türkçe font gömme, export satır sınırı, export audit kanıtı, backup durum şeması (uydurma yok)** (27 test) |
-| `apps/api` e2e | Vitest + gerçek PostgreSQL | auth 17 + görev 21 + günlük rapor 11 + medya 12 + proje 16 + puantaj 23 + stok 21 + gider 16 + hakediş 16 + **sync 12 (push idempotency, conflict, kapsam, tombstone, saati kaymış cihaz)** + health 5 = 170 e2e |
+| `apps/api` | Vitest | Health + auth birim + medya güvenliği (EXIF strip, magic sniff, imzalı URL, erken-abort) + Faz 10 export güvenliği + **Faz 11: güvenlik başlıkları, rate limiter bellek sınırı (evict)** (29 test) |
+| `apps/api` e2e | Vitest + gerçek PostgreSQL | auth 17 + görev 21 + günlük rapor 11 + medya 12 + proje 16 + puantaj 23 + stok 21 + gider 16 + hakediş 16 + sync 12 + health 6 (**Faz 11: güvenlik başlığı e2e kanıtı**) = 171 e2e; koşum yalnızca test/e2e adlı DB'ye izin verir (geliştirme DB koruması) |
 | `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI, oturum, kullanıcı, proje, görev, rapor, stok, **gider/hakediş biçimlendirme ve durum yardımcıları** (64 test) |
 | `apps/mobile` | Jest + RNTL | UI, oturum, kabuk, proje, görev, rapor formu, medya kuyruğu, puantaj ekranı, stok kuyruğu + gider ekranı, **sync motoru: kalıcılık, backoff+jitter, 401 refresh, çakışma/red, pull temizliği, medya eşleme** (99 test) |
 | `apps/web-e2e` | **Playwright (canlı)** | API sağlık, kabuk + drawer, görev, rapor, puantaj, stok, gider/hakediş, sync kritik akışları, **Faz 10: rapor gerçek sayılar + XLSX/PDF dosya indirme (magic bytes) + report.exported denetim kaydı + parola sızması yok + backup durum kartı + audit yetki kapısı** (25 koşu; mobil projede kritik-akış spesleri tasarım gereği atlanır) |
@@ -231,6 +230,8 @@ docker compose up -d --build
 ```
 
 Üretim profili: `web` + `api` + `db` (private network, dışarıya kapalı) + `object-storage` (MinIO) + `proxy` (Caddy/TLS). Detay: `docs/10-deployment-backup.md`.
+
+**Operasyon dokümanları (v1.0.0):** kurulum/upgrade/rollback + müşteri yöneticisi bakım listesi → [`docs/operations.md`](docs/operations.md) · yedekleme/geri yükleme runbook → [`docs/backup-restore.md`](docs/backup-restore.md) · mobil build yönergesi → [`docs/mobile-release.md`](docs/mobile-release.md) · sürüm notları → [`docs/release-notes.md`](docs/release-notes.md) · final release gate → [`docs/test-reports/final-release.md`](docs/test-reports/final-release.md)
 
 ## 📚 Dokümantasyon Haritası
 

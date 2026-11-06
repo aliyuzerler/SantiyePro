@@ -1,6 +1,8 @@
 import { describe, expect, it, beforeEach } from 'vitest';
+import type { Request, Response } from 'express';
 import { RateLimiterService } from '../src/common/rate-limiter.service.js';
 import { maskSensitive } from '../src/common/audit.service.js';
+import { securityHeadersMiddleware } from '../src/common/security-headers.middleware.js';
 import { passwordSchema, loginRequestSchema } from '@santiyepro/contracts';
 
 describe('RateLimiterService', () => {
@@ -29,6 +31,42 @@ describe('RateLimiterService', () => {
     // Pencereyi negatif süreyle simüle et: geçmiş kayıtlar filtrelenir
     for (let i = 0; i < 5; i++) limiter2.consume('x', 5, -1);
     expect(limiter2.consume('x', 5, 60_000).allowed).toBe(true);
+  });
+
+  // Faz 11: bellek sınırı — anahtar havuzu taşarsa en eski kayıt atılır.
+  it('anahtar havuzu MAX_TRACKED_KEYS aşınca en eski anahtarları evict eder', () => {
+    const max = 10_000;
+    for (let i = 0; i < max + 50; i++) {
+      limiter.consume(`key-${i}`, 1, 60_000);
+    }
+    // Havuz sınırlı kalmalı: key-0..49 atılmış olmalı.
+    expect(limiter.consume('key-0', 1, 60_000).allowed).toBe(true); // evict edildi → taze başlangıç
+    // Yeni denemeler devam edebilmeli (servis çalışır durumda).
+    expect(limiter.consume('key-0', 1, 60_000).allowed).toBe(false); // ikinci deneme limitte
+  });
+});
+
+describe('güvenlik başlıkları (Faz 11)', () => {
+  function mockRes(): Response {
+    const headers = new Map<string, string>();
+    return {
+      setHeader: (k: string, v: string) => {
+        headers.set(k.toLowerCase(), v);
+        return undefined as unknown as Response;
+      },
+      getHeader: (k: string) => headers.get(k.toLowerCase()),
+    } as unknown as Response;
+  }
+
+  it('tüm sertleştirme başlıklarını yazar', () => {
+    const res = mockRes();
+    securityHeadersMiddleware({} as Request, res, () => undefined);
+    expect(res.getHeader('x-content-type-options')).toBe('nosniff');
+    expect(res.getHeader('x-frame-options')).toBe('DENY');
+    expect(res.getHeader('referrer-policy')).toBe('strict-origin-when-cross-origin');
+    expect(res.getHeader('x-dns-prefetch-control')).toBe('off');
+    expect(res.getHeader('permissions-policy')).toContain('camera=()');
+    expect(res.getHeader('cross-origin-resource-policy')).toBe('same-site');
   });
 });
 

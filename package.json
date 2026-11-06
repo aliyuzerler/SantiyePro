@@ -1,8 +1,8 @@
 {
   "name": "santiyepro",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "ŞantiyePro — şantiye ve inşaat takip ürünü (mobil saha uygulaması + web yönetim paneli + API)",
+  "description": "\u015eantiyePro \u2014 \u015fantiye ve in\u015faat takip \u00fcr\u00fcn\u00fc (mobil saha uygulamas\u0131 + web y\u00f6netim paneli + API)",
   "packageManager": "pnpm@12.16.1",
   "engines": {
     "node": ">=20.0.0"

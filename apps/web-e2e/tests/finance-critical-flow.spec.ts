@@ -186,8 +186,9 @@ test.describe('Faz 08 — Gider & Hakediş kritik akış', () => {
       `${process.env.E2E_API_URL ?? 'http://localhost:4000/api/v1'}/progress-claims/${claim1.id}`,
       { headers: { Authorization: `Bearer ${seeded.token}` } },
     ).then((r) => r.json())) as { lines: Array<{ unitPriceSnapshot: string; lineAmount: string }>; netTotal: string };
-    expect(after.lines[0].unitPriceSnapshot).toBe('245.75');
-    expect(after.lines[0].lineAmount).toBe('49150.00');
+    expect(after.lines.length).toBeGreaterThan(0);
+    expect(after.lines[0]?.unitPriceSnapshot).toBe('245.75');
+    expect(after.lines[0]?.lineAmount).toBe('49150.00');
     expect(after.netTotal).toBe('49150.00');
 
     // API düzeyinde: kesinti brütü aşarsa 400

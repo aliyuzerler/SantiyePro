@@ -2,7 +2,7 @@
   "expo": {
     "name": "ŞantiyePro",
     "slug": "santiyepro",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": ["**/*"],

@@ -21,7 +21,6 @@ import { z } from 'zod';
 import { paginationQuerySchema, paginatedListResponseSchema } from './pagination.js';
 import { DAILY_REPORT_STATUSES, reportDateSchema } from './dailyreports.js';
 import { EXPENSE_STATUSES } from './finance.js';
-import { TASK_STATUSES } from './tasks.js';
 
 // ---------- Ortak filtre şeması ----------
 

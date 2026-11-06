@@ -5,11 +5,13 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { GlobalExceptionFilter } from '../src/common/global-exception.filter.js';
 import { traceIdMiddleware } from '../src/common/trace-id.middleware.js';
+import { securityHeadersMiddleware } from '../src/common/security-headers.middleware.js';
 
 /**
  * Faz 00 e2e: health uçları ve hata zarfı sözleşmesi.
  * Bu testler yerel/CI ortamında DB olmadan da koşabilir;
  * readiness davranışı health.service.spec.ts'te DB stub'ıyla test edilir.
+ * Faz 11: güvenlik başlıkları da aynı kurulumda doğrulanır.
  */
 describe('Health (e2e)', () => {
   let app: INestApplication;
@@ -24,6 +26,7 @@ describe('Health (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     app.useGlobalFilters(new GlobalExceptionFilter());
     app.use(traceIdMiddleware);
+    app.use(securityHeadersMiddleware);
     await app.init();
   });
 
@@ -63,5 +66,15 @@ describe('Health (e2e)', () => {
     const traceId = res.headers['x-trace-id'] as string;
     expect(traceId).toBeTruthy();
     expect(res.body.traceId).toBe(traceId);
+  });
+
+  // Faz 11 sertleştirmesi: tüm yanıtlarda güvenlik başlıkları bulunur.
+  it('güvenlik başlıkları tüm yanıtlarda taşınır (docs/07)', async () => {
+    const res = await request(app.getHttpServer()).get('/api/v1/health/live').expect(200);
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-frame-options']).toBe('DENY');
+    expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+    expect(res.headers['permissions-policy']).toContain('camera=()');
+    expect(res.headers['cross-origin-resource-policy']).toBe('same-site');
   });
 });
