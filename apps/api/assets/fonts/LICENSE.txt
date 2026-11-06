@@ -1,0 +1,28 @@
+# DejaVu Sans / DejaVu Sans Bold — bu dizindeki kopyalar
+
+Bu fontlar, ŞantiyePro PDF dışa aktarmasında Türkçe karakter (ğ, ş, İ, ı)
+desteğiyle metin çizmek için gömülür (Faz 10, docs/05).
+
+- Kaynak: https://dejavu-fonts.github.io/
+- Lisans: Bitstream Vera + public domain katkıları (iz aşağıda).
+- Yeniden dağıtım Bitstream Vera lisansı tarafından serbestçe izinlidir;
+  font yazılımı "as is" sağlanır.
+
+Bitstream Vera lisansı (DejaVu değişiklikleri public domain'dir):
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of the fonts accompanying this license ("Fonts") and associated
+  documentation files (the "Font Software"), to reproduce and distribute the
+  Font Software, including without limitation the rights to use, copy, merge,
+  publish, distribute, and/or sell copies of the Font Software, and to permit
+  persons to whom the Font Software is furnished to do so, subject to the
+  following conditions:
+
+  The above copyright and trademark notices and this permission notice shall
+  be included in all copies of one or more of the Font Software typefaces.
+
+  The Font Software may be modified, altered, added to, or in any other way
+  changed — provided that the above copyright and trademark notices are
+  retained in full and unmodified.
+
+  Bitstream Vera is a trademark of Bitstream, Inc.

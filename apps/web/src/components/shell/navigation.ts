@@ -3,6 +3,12 @@ export interface NavItem {
   href: string;
   /** Geçici outline ikonlar — Lucide Faz 02+ bağımlılık kararıyla eklenecek. */
   icon: string;
+  /**
+   * Bu menü öğesini görebilme izni (Faz 10): öğe sidebar'da gizlenir; bu,
+   * backend yetkisinin yerine GEÇMEZ (design/03, docs/07) — uçlarda
+   * PermissionsGuard deny-by-default devam eder.
+   */
+  permission?: string;
 }
 
 export interface NavSection {
@@ -12,7 +18,7 @@ export interface NavSection {
 
 /**
  * Web paneli menüsü — design/03 menü listesi.
- * Menü öğelerinin görünürlüğü ileride izinlere göre filtrelenir; bu, backend
+ * Menü öğelerinin görünürlüğü izinlere göre filtrelenir (Sidebar); bu, backend
  * yetkisinin yerine geçmez (design/03).
  */
 export const NAV_SECTIONS: NavSection[] = [
@@ -39,6 +45,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'Yönetim',
     items: [
       { label: 'Kullanıcılar & Yetkiler', href: '/kullanicilar', icon: '⚙' },
+      { label: 'Denetim Kayıtları', href: '/denetim-kayitlari', icon: '≡', permission: 'audit.view' },
       { label: 'Ayarlar', href: '/ayarlar', icon: '⚙' },
     ],
   },

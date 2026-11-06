@@ -62,6 +62,7 @@ export * from './attendance.js';
 export * from './inventory.js';
 export * from './finance.js';
 export * from './sync.js';
+export * from './reports.js';
 
 // ---------- Ortak alanlar ----------
 

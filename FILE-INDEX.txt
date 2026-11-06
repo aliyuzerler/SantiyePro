@@ -17,6 +17,7 @@ docs/07-security-rules.md
 docs/08-performance-rules.md
 docs/09-offline-sync.md
 docs/10-deployment-backup.md
+docs/backup-restore.md
 docs/11-testing-strategy.md
 docs/12-release-checklist.md
 docs/adr/ADR-001-single-customer-deployment.md

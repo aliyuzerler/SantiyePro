@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { NAV_SECTIONS } from './navigation';
+import { NAV_SECTIONS, type NavSection } from './navigation';
+import { useAuth } from '@/lib/auth';
+import { permissionsForRoles } from '@santiyepro/contracts';
 
 export interface SidebarProps {
   /** Mobil breakpoint'te drawer açık mı. */
@@ -16,6 +18,15 @@ export interface SidebarProps {
  */
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  // Menü görünürlüğü izne göre filtrelenir (Faz 10). Oturum henüz yüklenmediyse
+  // yalnızca izinsiz öğeler gösterilir; izinli öğeler user geldiğinde açılır.
+  const permissions = permissionsForRoles(user?.roles ?? []);
+  const visibleSections = NAV_SECTIONS.map((section): NavSection => ({
+    ...section,
+    items: section.items.filter((item) => !item.permission || permissions.has(item.permission)),
+  })).filter((section) => section.items.length > 0);
 
   const content = (
     <div className="flex h-full flex-col bg-brand-900 text-[#eaf0f6]">
@@ -30,7 +41,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       </div>
 
       <nav aria-label="Ana menü" className="flex-1 overflow-y-auto pb-4">
-        {NAV_SECTIONS.map((section) => (
+        {visibleSections.map((section) => (
           <div key={section.title}>
             <p className="px-6 pb-2 pt-4 text-[10px] uppercase tracking-[0.12em] text-[#8fa2b6]">{section.title}</p>
             <ul>

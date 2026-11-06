@@ -476,6 +476,8 @@ model AuditLog {
 
   @@index([entityType, entityId, createdAt])
   @@index([actorUserId, createdAt])
+  /// Faz 10: tarih aralıklı denetim taramaları ve facet sorguları için (docs/08).
+  @@index([createdAt])
 }
 
 /// Personel (Faz 06) — kurum genelindeki işçi/taşeron kaydı; sert silme yok,

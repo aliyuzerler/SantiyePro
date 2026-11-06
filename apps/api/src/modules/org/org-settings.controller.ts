@@ -42,4 +42,16 @@ export class OrgSettingsController {
   ) {
     return this.orgSettingsService.update(userId ?? '', body, this.meta(req, client));
   }
+
+  /**
+   * Yedekleme durumu (Faz 10, docs/10): son başarılı yedek zamanı, boyutlar,
+   * hata ve retention bilgisi. Yalnızca firma yöneticisi görür; uygulama
+   * içinden restore BAŞLATILMAZ (kontrollü operasyon script'i zorunludur).
+   */
+  @Get('backup-status')
+  @RequirePermissions('firm.settings.manage')
+  @ApiOperation({ summary: 'Yedekleme durumu (backup script status.json — salt okunur)' })
+  backupStatus() {
+    return this.orgSettingsService.getBackupStatus();
+  }
 }

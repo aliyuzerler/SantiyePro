@@ -9,6 +9,21 @@
 import type { UserDto } from '@santiyepro/contracts';
 import type { ProjectDto, ProjectDetailDto, SiteDto, ProjectMemberDto } from '@santiyepro/contracts';
 import type { TaskDto, TaskDetailDto, TaskCommentDto } from '@santiyepro/contracts';
+import type {
+  AuditFacets,
+  AuditLogResponse,
+  AttendanceReportResponse,
+  BackupStatus,
+  ClaimSummaryResponse,
+  DailyReportSummaryResponse,
+  ExpenseSummaryResponse,
+  ProjectOverviewResponse,
+  ReportExportFormat,
+  ReportKey,
+  StockBalanceResponse,
+  StockMovementResponse,
+  TaskStatusResponse,
+} from '@santiyepro/contracts';
 
 export type { UserDto, ProjectDto, ProjectDetailDto, SiteDto, ProjectMemberDto, TaskDto, TaskDetailDto, TaskCommentDto };
 
@@ -759,4 +774,133 @@ export const inventoryApi = {
       body: { reason },
       token,
     }),
+};
+
+// ---------- Raporlar, denetim günlüğü ve yedekleme (Faz 10) ----------
+
+export type PaginatedReportResponse<T> = {
+  data: T[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+};
+
+export interface ReportFilterParams {
+  dateFrom?: string;
+  dateTo?: string;
+  projectId?: string;
+  siteId?: string;
+  status?: string;
+  /** Yalnızca stok bakiyesi raporu: 'true' → kritik altı kartlar. */
+  belowMin?: string;
+  /** Yalnızca stok hareketleri raporu: hareket tipi (IN/OUT/TRANSFER/...). */
+  type?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+function reportQueryString(params: ReportFilterParams): string {
+  const qs = new URLSearchParams();
+  if (params.dateFrom) qs.set('dateFrom', params.dateFrom);
+  if (params.dateTo) qs.set('dateTo', params.dateTo);
+  if (params.projectId) qs.set('projectId', params.projectId);
+  if (params.siteId) qs.set('siteId', params.siteId);
+  if (params.status) qs.set('status', params.status);
+  if (params.belowMin) qs.set('belowMin', params.belowMin);
+  if (params.type) qs.set('type', params.type);
+  qs.set('page', String(params.page ?? 1));
+  qs.set('pageSize', String(params.pageSize ?? 20));
+  return qs.toString();
+}
+
+export const reportsApi = {
+  overview: (token: string, params: ReportFilterParams = {}) =>
+    apiFetch<ProjectOverviewResponse>(`/reports/project-overview?${reportQueryString(params)}`, { token }),
+  dailyReports: (token: string, params: ReportFilterParams = {}) =>
+    apiFetch<DailyReportSummaryResponse>(`/reports/daily-reports?${reportQueryString(params)}`, { token }),
+  attendance: (token: string, params: ReportFilterParams = {}) =>
+    apiFetch<AttendanceReportResponse>(`/reports/attendance?${reportQueryString(params)}`, { token }),
+  stockBalance: (token: string, params: ReportFilterParams = {}) =>
+    apiFetch<StockBalanceResponse>(`/reports/stock/balance?${reportQueryString(params)}`, { token }),
+  stockMovements: (token: string, params: ReportFilterParams = {}) =>
+    apiFetch<StockMovementResponse>(`/reports/stock/movements?${reportQueryString(params)}`, { token }),
+  expenseSummary: (token: string, params: ReportFilterParams = {}) =>
+    apiFetch<ExpenseSummaryResponse>(`/reports/expenses?${reportQueryString(params)}`, { token }),
+  claimSummary: (token: string, params: ReportFilterParams = {}) =>
+    apiFetch<ClaimSummaryResponse>(`/reports/claims?${reportQueryString(params)}`, { token }),
+  taskStatus: (token: string, params: ReportFilterParams = {}) =>
+    apiFetch<TaskStatusResponse>(`/reports/tasks?${reportQueryString(params)}`, { token }),
+
+  /**
+   * Rapor dosyasını indirir (PDF/XLSX). Binary yanıt olduğu için apiFetch
+   * yerine doğrudan fetch kullanır; hata zarfı yine contracts'tan çözülür.
+   * Sunucu her export için audit log üretir (X-Audit-Log-Id başlığı).
+   */
+  exportReport: async (
+    token: string,
+    key: ReportKey,
+    format: ReportExportFormat,
+    params: Omit<ReportFilterParams, 'page' | 'pageSize'> = {},
+  ): Promise<{ blob: Blob; filename: string; auditLogId: string; rowCount: number }> => {
+    const qs = new URLSearchParams();
+    qs.set('format', format);
+    if (params.dateFrom) qs.set('dateFrom', params.dateFrom);
+    if (params.dateTo) qs.set('dateTo', params.dateTo);
+    if (params.projectId) qs.set('projectId', params.projectId);
+    if (params.siteId) qs.set('siteId', params.siteId);
+    if (params.status) qs.set('status', params.status);
+
+    const res = await fetch(`${API_BASE_URL}/reports/${key}/export?${qs.toString()}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const envelope = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+      throw new ApiError(res.status, envelope.error?.code ?? 'INTERNAL_ERROR', envelope.error?.message ?? 'Dışa aktarma başarısız');
+    }
+    const disposition = res.headers.get('Content-Disposition') ?? '';
+    const match = /filename="?([^";]+)"?/.exec(disposition);
+    return {
+      blob: await res.blob(),
+      filename: match?.[1] ?? `santiyepro-${key}.${format}`,
+      auditLogId: res.headers.get('X-Audit-Log-Id') ?? '',
+      rowCount: Number(res.headers.get('X-Row-Count') ?? '0'),
+    };
+  },
+};
+
+export interface AuditLogListParams {
+  entityType?: string;
+  action?: string;
+  actorUserId?: string;
+  entityId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export const auditApi = {
+  logs: (token: string, params: AuditLogListParams = {}) => {
+    const qs = new URLSearchParams();
+    if (params.entityType) qs.set('entityType', params.entityType);
+    if (params.action) qs.set('action', params.action);
+    if (params.actorUserId) qs.set('actorUserId', params.actorUserId);
+    if (params.entityId) qs.set('entityId', params.entityId);
+    if (params.dateFrom) qs.set('dateFrom', params.dateFrom);
+    if (params.dateTo) qs.set('dateTo', params.dateTo);
+    qs.set('page', String(params.page ?? 1));
+    qs.set('pageSize', String(params.pageSize ?? 20));
+    return apiFetch<AuditLogResponse>(`/audit/logs?${qs.toString()}`, { token });
+  },
+  facets: (token: string) => apiFetch<AuditFacets>('/audit/facets', { token }),
+};
+
+export const orgApi = {
+  settings: (token: string) => apiFetch<{ attendanceCustomStatuses: { key: string; label: string }[] }>('/org/settings', { token }),
+  updateSettings: (
+    token: string,
+    body: { attendanceCustomStatuses: { key: string; label: string }[] },
+  ) => apiFetch<{ attendanceCustomStatuses: { key: string; label: string }[] }>('/org/settings', { method: 'PATCH', body, token }),
+  /** Yedekleme durumu — backup script status.json (salt okunur, docs/10). */
+  backupStatus: (token: string) => apiFetch<BackupStatus>('/org/backup-status', { token }),
 };

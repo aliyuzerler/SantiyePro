@@ -5,8 +5,8 @@
 **Şantiye ve inşaat takip platformu — saha mobil uygulaması, web yönetim paneli ve API**
 
 [![CI](https://github.com/aliyuzerler/SantiyePro/actions/workflows/ci.yml/badge.svg)](https://github.com/aliyuzerler/SantiyePro/actions/workflows/ci.yml)
-![Faz](https://img.shields.io/badge/faz-02%20tamamlandı-14263D)
-![Test](https://img.shields.io/badge/test%20kapısı-88%20test-D99A2B)
+![Faz](https://img.shields.io/badge/faz-10%20tamamlandı-14263D)
+![Test](https://img.shields.io/badge/test%20kapısı-443%20test%20%2B%2025%20canlı%20koşu-D99A2B)
 
 *React Native + Expo · Next.js · NestJS · PostgreSQL*
 
@@ -101,6 +101,12 @@
 | --- |
 | ![Hakedişler](docs/screenshots/phase-08-hakedisler.png) |
 
+### Raporlama ve Denetim (Faz 10)
+
+| Raporlar — gerçek veri + PDF/XLSX dışa aktarma | Denetim Kayıtları — önce/sonra, maskeli |
+| --- | --- |
+| ![Raporlar](docs/screenshots/phase-10-raporlar.png) | ![Denetim](docs/screenshots/phase-10-denetim.png) |
+
 ## 🧱 Mimari
 
 ```text
@@ -141,13 +147,11 @@ Geliştirme `prompts/README.md` içindeki faz sırasına göre yürür; her faz 
 | 07 | Depo, malzeme ve stok hareketleri (append-only, transfer atomik, ters kayıt) | ✅ Tamamlandı |
 | 08 | Gider ve hakediş (onay akışı, fiyat snapshot'ı, net/kesinti, mobil gider kuyruğu) | ✅ Tamamlandı |
 | 09 | Çevrimdışı senkronizasyon (outbox + SQLite, /sync/push-pull, çakışma politikası, kuyruk ekranı) | ✅ Tamamlandı |
-| 07 | Depo / stok | ⬜ |
-| 08 | Giderler ve hakedişler | ⬜ |
-| 09 | Çevrimdışı senkronizasyon | ⬜ |
-| 10 | Raporlar, denetim görünümleri, yedekleme | ⬜ |
+| 10 | Raporlama ve dışa aktarma (7 rapor + PDF/XLSX), denetim günlüğü ekranı, backup/restore | ✅ Tamamlandı |
+| 11 | Üretim sertleştirme | ⬜ |
 | 11 | Üretim sertleştirme | ⬜ |
 
-Faz raporları: [phase-00](docs/test-reports/phase-00.md) · [phase-01](docs/test-reports/phase-01.md) · [phase-02](docs/test-reports/phase-02.md) · [phase-03](docs/test-reports/phase-03.md) · [phase-04](docs/test-reports/phase-04.md) · [phase-05](docs/test-reports/phase-05.md) · [phase-06](docs/test-reports/phase-06.md) · [phase-07](docs/test-reports/phase-07.md) · [phase-08](docs/test-reports/phase-08.md) · [phase-09](docs/test-reports/phase-09.md)
+Faz raporları: [phase-00](docs/test-reports/phase-00.md) · [phase-01](docs/test-reports/phase-01.md) · [phase-02](docs/test-reports/phase-02.md) · [phase-03](docs/test-reports/phase-03.md) · [phase-04](docs/test-reports/phase-04.md) · [phase-05](docs/test-reports/phase-05.md) · [phase-06](docs/test-reports/phase-06.md) · [phase-07](docs/test-reports/phase-07.md) · [phase-08](docs/test-reports/phase-08.md) · [phase-09](docs/test-reports/phase-09.md) · [phase-10](docs/test-reports/phase-10.md)
 
 ## 🚀 Hızlı Başlangıç
 
@@ -200,16 +204,16 @@ kapanmadan **gerçek ortamda** koşar — gerçek UI girişi, menüdeki 11 modü
 mobil drawer akışı ve fazın kendi kritik akışı (gerçek mock'suz API + PostgreSQL).
 Ayrıntılar: [`docs/process/canli-test-standardi.md`](docs/process/canli-test-standardi.md).
 
-**Mevcut test envanteri (Faz 09 itibarıyla — 433 test + 24 canlı Playwright koşusu):**
+**Mevcut test envanteri (Faz 10 itibarıyla — 443 test + 25 canlı Playwright koşusu):**
 
 | Paket | Araç | Kapsam |
 | --- | --- | --- |
 | `packages/contracts` | Vitest | Token paritesi, durum makineleri, izin matrisi, medya allowlist, **finans matematiği: para/odak aritmetiği (BigInt, 2 ondalık HALF_UP), hakediş satır formülü** (83 test) |
-| `apps/api` | Vitest | Health + auth birim + medya güvenliği (EXIF strip, magic sniff, imzalı URL, erken-abort) (17 test) |
+| `apps/api` | Vitest | Health + auth birim + medya güvenliği (EXIF strip, magic sniff, imzalı URL, erken-abort) + **Faz 10: XLSX gerçek hücre tipleri, PDF Türkçe font gömme, export satır sınırı, export audit kanıtı, backup durum şeması (uydurma yok)** (27 test) |
 | `apps/api` e2e | Vitest + gerçek PostgreSQL | auth 17 + görev 21 + günlük rapor 11 + medya 12 + proje 16 + puantaj 23 + stok 21 + gider 16 + hakediş 16 + **sync 12 (push idempotency, conflict, kapsam, tombstone, saati kaymış cihaz)** + health 5 = 170 e2e |
 | `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI, oturum, kullanıcı, proje, görev, rapor, stok, **gider/hakediş biçimlendirme ve durum yardımcıları** (64 test) |
 | `apps/mobile` | Jest + RNTL | UI, oturum, kabuk, proje, görev, rapor formu, medya kuyruğu, puantaj ekranı, stok kuyruğu + gider ekranı, **sync motoru: kalıcılık, backoff+jitter, 401 refresh, çakışma/red, pull temizliği, medya eşleme** (99 test) |
-| `apps/web-e2e` | **Playwright (canlı)** | API sağlık, kabuk + drawer, görev, rapor, puantaj, stok, gider/hakediş, **sync kritik akışları (push×3 idempotent, pull delta, conflict, kapsam)** (24 koşu; mobil projede 17 kritik-akış spesi tasarım gereği atlanır) |
+| `apps/web-e2e` | **Playwright (canlı)** | API sağlık, kabuk + drawer, görev, rapor, puantaj, stok, gider/hakediş, sync kritik akışları, **Faz 10: rapor gerçek sayılar + XLSX/PDF dosya indirme (magic bytes) + report.exported denetim kaydı + parola sızması yok + backup durum kartı + audit yetki kapısı** (25 koşu; mobil projede kritik-akış spesleri tasarım gereği atlanır) |
 
 Yerel tam yığın doğrulama (Docker'sız):
 

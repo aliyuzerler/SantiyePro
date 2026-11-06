@@ -42,7 +42,11 @@ export class AuditService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async record(entry: AuditEntryInput): Promise<void> {
+  /**
+   * Audit kaydı yazar. Faz 10'dan itibaren oluşturulan kaydın id'sini döner
+   * (export kanıtı raporlarda gösterilir); yazım başarısızsa null döner.
+   */
+  async record(entry: AuditEntryInput): Promise<{ id: string } | null> {
     const data: Prisma.AuditLogCreateInput = {
       action: entry.action,
       entityType: entry.entityType,
@@ -55,10 +59,12 @@ export class AuditService {
       traceId: entry.traceId ?? null,
     };
     try {
-      await this.prisma.auditLog.create({ data });
+      const row = await this.prisma.auditLog.create({ data });
+      return { id: row.id };
     } catch (error) {
       // Audit yazımı ana akışı bloklamaz ama sessiz de kalmaz.
       this.logger.error(`Audit kaydı yazılamadı: ${String(error instanceof Error ? error.message : error)}`);
+      return null;
     }
   }
 }

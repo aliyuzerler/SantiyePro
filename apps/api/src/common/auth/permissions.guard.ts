@@ -51,6 +51,18 @@ export class PermissionsGuard implements CanActivate {
     return true;
   }
 
+  /**
+   * Dinamik (parametreli) izin kontrolü — Faz 10 rapor export ucu gibi tek
+   * handler'ın anahtara göre farklı izin istediği uçlar için. Guard ile aynı
+   * önbellek ve DB mantığını kullanır.
+   */
+  async assertPermission(userId: string, permission: string): Promise<void> {
+    const effective = await this.loadUserPermissions(userId);
+    if (!effective || !effective.permissions.has(permission)) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Yetkisiz erişim' });
+    }
+  }
+
   private async loadUserPermissions(userId: string): Promise<CachedPermissions | null> {
     const cached = this.cache.get(userId);
     if (cached && Date.now() - cached.loadedAt < PERMISSIONS_CACHE_TTL_MS) return cached;
