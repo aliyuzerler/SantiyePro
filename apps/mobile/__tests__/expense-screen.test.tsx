@@ -107,7 +107,8 @@ function mockFetch(): void {
 }
 
 /** mockFetch'in GET kısımlarını yeniden kurar (POST'u reddetmek için sarmalanır). */
-function jsonResponseFactory(url: string, init?: { method?: string }) {
+function jsonResponseFactory(url: string, _init?: { method?: string }) {
+  void _init; // imza uyumu için korunur; bu mock yalnızca GET gövdesi döndürür
   if (String(url).includes('/auth/me')) {
     return jsonResponse(200, {
       id: 'u-admin',

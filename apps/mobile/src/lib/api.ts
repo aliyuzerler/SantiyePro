@@ -494,3 +494,22 @@ export const inventoryApi = {
       token,
     }),
 };
+
+// ---------- Senkronizasyon (Faz 09 — docs/09) ----------
+
+import type {
+  SyncMutation,
+  SyncPullResponse,
+  SyncPushResponse,
+} from '@santiyepro/contracts';
+export type { SyncMutation, SyncPullResponse, SyncPushResponse };
+
+export const syncApi = {
+  /** Outbox batch'i — her mutation için accepted/rejected/conflict sonucu döner. */
+  push: (token: string, mutations: SyncMutation[]) =>
+    request<SyncPushResponse>('/sync/push', { method: 'POST', body: { mutations }, token }),
+
+  /** seq cursor'ıyla delta; accessibleProjectIds ile erişim snapshot'ı döner. */
+  pull: (token: string, cursor: number, limit = 100) =>
+    request<SyncPullResponse>(`/sync/pull?cursor=${cursor}&limit=${limit}`, { token }),
+};

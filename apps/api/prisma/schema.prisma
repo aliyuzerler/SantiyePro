@@ -824,3 +824,51 @@ model ProgressClaimLine {
   @@unique([progressClaimId, contractItemId])
   @@index([contractItemId])
 }
+
+/// Senkronizasyon olay günlüğü (Faz 09 — docs/09). Append-only değişiklik
+/// işaretçisi: pull, seq > cursor olan olayları gruplar ve HER ZAMAN entity'nin
+/// GÜNCEL durumunu okuyarak döner (aynı kaydın 5 güncellemesi tek upsert olur).
+/// seq, sunucu monotonik sırasıdır — cihaz saati asla sıralama kaynağı değildir
+/// (docs/09 çakışma politikası, test senaryosu 9). Silinen/erişimi kalkan veri
+/// için 'delete' tombstone satırı tutulur; cihaz yerel kopyasını temizler.
+model SyncEvent {
+  /// Monotonik sequence — pull cursor'ının tek doğruluk kaynağı.
+  seq        BigInt   @id @default(autoincrement())
+  entityType String
+  entityId   String
+  /// 'upsert' (tam anlık görüntü pull anında okunur) | 'delete' (tombstone).
+  operation  String
+  /// Proje bağlantılı kayıtlarda sahiplik; kurum geneli veride null.
+  projectId  String?
+  occurredAt DateTime @default(now())
+  /// Değişikliği yapan aktör (bilgi amaçlı; pull kapsamı üyelikle belirlenir).
+  actorId    String?
+
+  @@index([projectId, seq])
+  @@index([entityType, entityId, seq])
+}
+
+/// Push idempotency defteri (Faz 09 — docs/09). /sync/push'a gelen her
+/// clientMutationId'nin sonucu burada saklanır: tekrar gönderim mutation'ı
+/// yeniden ÇALIŞTIRMADAN aynı sonucu replayed: true ile döner. Böylece ağ
+/// kopması sonrası outbox tekrarları çift kayıt/çift stok üretmez. Sonuç zarfı
+/// resultJson'da birebir saklanır; reddedilen kaydın açıklaması da kalıcıdır
+/// (outbox hata kaydı sessizce silinmez — test senaryosu 10).
+model SyncMutationLog {
+  id               String   @id @default(cuid())
+  /// Kullanıcı başına tekil: aynı cihaz anahtarı farklı kullanıcıda ayrıdır.
+  userId           String
+  clientMutationId String
+  mutationType     String
+  /// accepted | rejected | conflict
+  status           String
+  serverId         String?
+  version          Int?
+  errorJson        Json?
+  /// Tam SyncMutationResult zarfı — replay aynı yanıtı birebir döner.
+  resultJson       Json
+  processedAt      DateTime @default(now())
+
+  @@unique([userId, clientMutationId])
+  @@index([userId, processedAt])
+}

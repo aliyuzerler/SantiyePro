@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootTabs } from './src/navigation/RootTabs';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { AuthProvider, useAuth } from './src/lib/auth-context';
+import { SyncProvider } from './src/lib/sync/sync-context';
 import { colors } from './src/theme/tokens';
 
 const navigationTheme: NavigationTheme = {
@@ -38,7 +39,21 @@ function Root() {
       </View>
     );
   }
-  return user ? <RootTabs /> : <LoginScreen />;
+  return user ? <AuthenticatedShell /> : <LoginScreen />;
+}
+
+/**
+ * Senkronizasyon katmanı oturumun İÇİNDE kurulur (Faz 09):
+ * - 401 refresh başarısızsa oturum kapatılır → login ekranı; outbox SQLite'ta
+ *   kaldığı için yeniden girişte kuyruk kaldığı yerden devam eder (docs/09).
+ */
+function AuthenticatedShell() {
+  const { logout } = useAuth();
+  return (
+    <SyncProvider onAuthExpired={() => void logout()}>
+      <RootTabs />
+    </SyncProvider>
+  );
 }
 
 export default function App() {

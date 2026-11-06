@@ -39,6 +39,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../../common/audit.service.js';
 import { OrgSettingsService } from '../org/org-settings.service.js';
+import { SyncEventsService } from '../../common/sync-events.service.js';
 
 interface Actor {
   userId: string;
@@ -61,6 +62,7 @@ export class AttendanceService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly orgSettings: OrgSettingsService,
+    private readonly syncEvents: SyncEventsService,
   ) {}
 
   // ---------- Ortak yardımcılar ----------
@@ -317,6 +319,15 @@ export class AttendanceService {
         ...meta,
       });
 
+      // Faz 09: mobil çevrimdışı işaretleme pull ile diğer cihazlara taşınır.
+      await this.syncEvents.record({
+        entityType: 'attendanceRecord',
+        entityId: row.id,
+        operation: 'upsert',
+        projectId: row.projectId,
+        actorId: actor.userId,
+      });
+
       return { record: AttendanceService.toDto(row), replayed: false };
     } catch (error) {
       // Eşzamanlı istekte unique constraint ihlali → aynı 409 sözleşmesi.
@@ -384,6 +395,14 @@ export class AttendanceService {
       before: { status: current.status, checkInAt: next.checkInAt, checkOutAt: next.checkOutAt },
       after: { status: row.status, workDate: row.workDate.toISOString().slice(0, 10), shiftKey: row.shiftKey },
       ...meta,
+    });
+
+    await this.syncEvents.record({
+      entityType: 'attendanceRecord',
+      entityId: row.id,
+      operation: 'upsert',
+      projectId: row.projectId,
+      actorId: actor.userId,
     });
 
     return AttendanceService.toDto(row);
@@ -512,11 +531,12 @@ export class AttendanceService {
     const workDate = workDateToDate(input.workDate);
     let createdCount = 0;
     let updatedCount = 0;
+    const changedRecordIds: string[] = [];
 
     await this.prisma.$transaction(async (tx) => {
       for (const entry of entries) {
         if (entry.action === 'CREATE') {
-          await tx.attendanceRecord.create({
+          const created = await tx.attendanceRecord.create({
             data: {
               projectId: input.projectId,
               siteId: input.siteId ?? undefined,
@@ -532,9 +552,10 @@ export class AttendanceService {
               source,
             },
           });
+          changedRecordIds.push(created.id);
           createdCount += 1;
         } else if (entry.action === 'UPDATE') {
-          await tx.attendanceRecord.updateMany({
+          const updated = await tx.attendanceRecord.updateManyAndReturn({
             where: {
               personnelId: entry.personnelId,
               projectId: input.projectId,
@@ -549,6 +570,7 @@ export class AttendanceService {
               note: input.note ?? undefined,
             },
           });
+          for (const rec of updated) changedRecordIds.push(rec.id);
           updatedCount += 1;
         }
       }
@@ -570,6 +592,17 @@ export class AttendanceService {
       },
       ...meta,
     });
+
+    // Toplu işaretlemede değişen tüm kayıtlar pull deltasına girer.
+    await this.syncEvents.recordMany(
+      changedRecordIds.map((id) => ({
+        entityType: 'attendanceRecord' as const,
+        entityId: id,
+        operation: 'upsert' as const,
+        projectId: input.projectId,
+        actorId: actor.userId,
+      })),
+    );
 
     return {
       projectId: input.projectId,

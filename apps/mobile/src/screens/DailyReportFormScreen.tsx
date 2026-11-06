@@ -7,11 +7,12 @@ import { Card } from '../components/ui/Card';
 import { ErrorState } from '../components/ui/ErrorState';
 import { TextField } from '../components/ui/TextField';
 import { tokenStorage } from '../lib/secure-store';
-import { dailyReportsApi, mediaApi, projectsApi, type ProjectDto } from '../lib/api';
+import { dailyReportsApi, mediaApi, projectsApi, ApiError, type ProjectDto } from '../lib/api';
 import {
   generateClientMutationId,
   offlineMediaQueue,
 } from '../lib/offline-media-queue';
+import { useSyncOptional } from '../lib/sync/sync-context';
 import { colors, radius, spacing, typography } from '../theme/tokens';
 
 /**
@@ -60,6 +61,7 @@ export function DailyReportFormScreen({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string>();
   const [warning, setWarning] = useState<string>();
   const [savedDraftId, setSavedDraftId] = useState<string | null>(null);
+  const sync = useSyncOptional();
 
   useEffect(() => {
     void (async () => {
@@ -196,14 +198,49 @@ export function DailyReportFormScreen({ onClose }: { onClose: () => void }) {
       // 2) Fotoğrafları yükle; başarısızlar kuyruğa girer.
       await uploadImages(draft.id, projectId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Rapor kaydedilemedi');
+      if (!(err instanceof ApiError) && sync) {
+        // Çevrimdışı taslak akışı (docs/09 — öncelikli çevrimdışı akışlar):
+        // rapor metadata'sı outbox'a yazılır; fotoğraflar medya kuyruğuna
+        // localRef ile bağlanır. Rapor push edilip kabul olunduğunda motor
+        // dosyaları sunucu raporuna eşler ve upload eder — dosya kaybolmaz.
+        const mutationId = generateClientMutationId();
+        await sync.enqueue(
+          'dailyReport.upsertDraft',
+          {
+            reportId: null,
+            projectId,
+            siteId: siteId ?? null,
+            reportDate,
+            weather: weather || null,
+            workSummary: workSummary.trim(),
+            workforceSummary: workforceSummary || null,
+            equipmentSummary: equipmentSummary || null,
+            issues: issues || null,
+            safetyNotes: safetyNotes || null,
+            nextDayPlan: nextDayPlan || null,
+            workers: workers
+              .filter((w) => w.name.trim().length > 0)
+              .map((w) => ({ name: w.name.trim(), jobTitle: w.jobTitle || null, workerCount: w.workerCount, hours: w.hours })),
+          },
+          mutationId,
+        );
+        for (const image of images) {
+          await sync.enqueueMedia({ uri: image.uri, mimeType: image.mimeType, sizeBytes: image.sizeBytes }, mutationId, projectId);
+        }
+        setSavedDraftId('pending'); // form kilitlenir; submit çevrimdışı yapılamaz
+        setWarning(
+          'Çevrimdışı: rapor taslağı bu cihazda saklandı. Bağlantı gelince otomatik gönderilecek (sunucu onayı bekliyor).',
+        );
+      } else {
+        setError(err instanceof Error ? err.message : 'Rapor kaydedilemedi');
+      }
     } finally {
       setSaving(false);
     }
   }
 
   async function onSubmit() {
-    if (!savedDraftId) return;
+    if (!savedDraftId || savedDraftId === 'pending') return; // 'pending': çevrimdışı kuyrukta
     const token = await tokenStorage.loadAccessToken();
     if (!token) return;
     setSaving(true);

@@ -3,11 +3,13 @@ import { describe, expect, it } from '@jest/globals';
 import { NavigationContainer } from '@react-navigation/native';
 import App from '../App';
 import { RootTabs } from '../src/navigation/RootTabs';
+import { SyncProvider } from '../src/lib/sync/sync-context';
+import { MemorySyncStorage } from '../src/lib/sync/memory-storage';
 
 /**
  * AppShell smoke testi — Faz 02'den itibaren oturum akışı:
  * Oturum yoksa LoginScreen görünür; oturumlu kabuk için RootTabs doğrudan render edilir.
- * design/02: Ana Sayfa, Projeler, + Kayıt, Görevler, Profil.
+ * design/02: Ana Sayfa, Projeler, + Kayıt, Görevler, Profil (+ Faz 09 Senkronizasyon).
  */
 describe('App (mobil kabuk)', () => {
   it('oturum yoksa giriş ekranı render ediliyor', async () => {
@@ -22,7 +24,9 @@ describe('App (mobil kabuk)', () => {
   it('oturumlu kullanıcı için ana sayfa ve alt navigasyon render ediliyor', async () => {
     await render(
       <NavigationContainer>
-        <RootTabs />
+        <SyncProvider storageOverride={new MemorySyncStorage()}>
+          <RootTabs />
+        </SyncProvider>
       </NavigationContainer>,
     );
 

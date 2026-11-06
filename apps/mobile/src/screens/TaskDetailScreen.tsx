@@ -19,6 +19,16 @@ import {
 } from '@santiyepro/contracts';
 import { colors, spacing, typography } from '../theme/tokens';
 import { useAuth } from '../lib/auth-context';
+import { useSyncOptional } from '../lib/sync/sync-context';
+import { generateClientMutationId } from '../lib/offline-media-queue';
+
+/**
+ * Ağ kaynaklı hata mı? ApiError (sunucu yanıtı) DEĞİLSE bağlantı sorunudur —
+ * 4xx doğrulama/yetki hataları kalıcıdır ve kuyruğa alınmaz (docs/09).
+ */
+function isNetworkFailure(err: unknown): boolean {
+  return !(err instanceof ApiError);
+}
 
 function statusTone(status: TaskStatus): 'approved' | 'pending' | 'submitted' | 'neutral' | 'draft' {
   switch (status) {
@@ -64,10 +74,13 @@ function formatDue(iso: string | null | undefined): string {
  */
 export function TaskDetailScreen({ taskId, onBack }: { taskId: string; onBack: () => void }) {
   const { user } = useAuth();
+  const sync = useSyncOptional();
   const [detail, setDetail] = useState<TaskDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>();
+  /** Çevrimdışı kuyruğa alınan değişiklik bilgisi — "sunucu onayı bekliyor". */
+  const [offlineQueued, setOfflineQueued] = useState(false);
   const [busy, setBusy] = useState(false);
   const [comment, setComment] = useState('');
   const [commentError, setCommentError] = useState<string>();
@@ -107,6 +120,11 @@ export function TaskDetailScreen({ taskId, onBack }: { taskId: string; onBack: (
     setRefreshing(false);
   }, [load]);
 
+  // Yeniden yükleme başarılı olursa "kuyruğa alındı" bilgisi temizlenir (sunucu güncel).
+  useEffect(() => {
+    if (detail) setOfflineQueued(false);
+  }, [detail]);
+
   async function changeStatus(nextStatus: string) {
     const token = await tokenStorage.loadAccessToken();
     if (!token || !detail) return;
@@ -116,7 +134,15 @@ export function TaskDetailScreen({ taskId, onBack }: { taskId: string; onBack: (
       await tasksApi.update(token, detail.id, { status: nextStatus });
       await load({ silent: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Durum değiştirilemedi');
+      if (isNetworkFailure(err) && sync) {
+        // Çevrimdışı akış (docs/09): durum değişikliği outbox'a yazılır; sunucu
+        // onaylanana kadar kuyruk ekranında "sunucu onayı bekliyor" görünür.
+        await sync.enqueue('task.update', { taskId: detail.id, status: nextStatus }, generateClientMutationId());
+        setError(undefined);
+        setOfflineQueued(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Durum değiştirilemedi');
+      }
     } finally {
       setBusy(false);
     }
@@ -134,7 +160,19 @@ export function TaskDetailScreen({ taskId, onBack }: { taskId: string; onBack: (
       await tasksApi.update(token, detail.id, { checklist: nextChecklist, version: detail.version });
       await load({ silent: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kontrol listesi güncellenemedi');
+      if (isNetworkFailure(err) && sync) {
+        // Checklist değişimi version ile gönderilir: arada sunucuda değiştiyse
+        // push 'conflict' döner — otomatik üzerine yazma yoktur (docs/09).
+        await sync.enqueue(
+          'task.update',
+          { taskId: detail.id, checklist: nextChecklist, version: detail.version },
+          generateClientMutationId(),
+        );
+        setError(undefined);
+        setOfflineQueued(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Kontrol listesi güncellenemedi');
+      }
     } finally {
       setBusy(false);
     }
@@ -145,12 +183,21 @@ export function TaskDetailScreen({ taskId, onBack }: { taskId: string; onBack: (
     if (!token || !detail || !comment.trim()) return;
     setBusy(true);
     setCommentError(undefined);
+    const body = comment.trim();
     try {
-      await tasksApi.addComment(token, detail.id, comment.trim());
+      await tasksApi.addComment(token, detail.id, body);
       setComment('');
       await load({ silent: true });
     } catch (err) {
-      setCommentError(err instanceof Error ? err.message : 'Yorum eklenemedi');
+      if (isNetworkFailure(err) && sync) {
+        // Yorum append-only'dir; kuyruktan tekrar gönderim clientMutationId
+        // ile tek kayıt oluşturur (test senaryosu 3).
+        await sync.enqueue('task.comment', { taskId: detail.id, body }, generateClientMutationId());
+        setComment('');
+        setOfflineQueued(true);
+      } else {
+        setCommentError(err instanceof Error ? err.message : 'Yorum eklenemedi');
+      }
     } finally {
       setBusy(false);
     }
@@ -200,6 +247,11 @@ export function TaskDetailScreen({ taskId, onBack }: { taskId: string; onBack: (
         {detail.siteName ? ` · ${detail.siteName}` : ''}
         {detail.assignee ? ` · ${detail.assignee.fullName}` : ' · Atanmadı'}
       </Text>
+      {offlineQueued ? (
+        <Text style={styles.offlineNote} accessibilityLabel="Değişiklik kuyruğa alındı">
+          Çevrimdışı: değişiklik kuyruğa alındı — sunucu onayı bekliyor.
+        </Text>
+      ) : null}
 
       <View style={styles.badgeRow}>
         <StatusBadge tone={statusTone(detail.status)}>{TASK_STATUS_LABELS[detail.status]}</StatusBadge>
@@ -353,6 +405,16 @@ const styles = StyleSheet.create({
   commentMeta: { ...typography.secondary, marginTop: spacing['1'] },
   commentForm: { gap: spacing['2'], marginTop: spacing['2'] },
   errorText: { fontSize: 12, fontWeight: '600', color: colors.semantic.danger },
+  offlineNote: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.semantic.warning,
+    backgroundColor: 'rgba(196,143,29,0.12)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 6,
+  },
   historyRow: { fontSize: 12, color: colors.text.secondary, paddingVertical: 2 },
   historyStrong: { fontWeight: '700', color: colors.text.primary },
   overdueBadge: {

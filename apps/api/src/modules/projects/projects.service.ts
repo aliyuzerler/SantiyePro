@@ -11,6 +11,7 @@ import {
 } from '@santiyepro/contracts';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../../common/audit.service.js';
+import { SyncEventsService } from '../../common/sync-events.service.js';
 
 /**
  * Projeler ve şantiyeler servisi (Faz 03).
@@ -40,6 +41,7 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly syncEvents: SyncEventsService,
   ) {}
 
   /** Kullanıcının rollerini DB'den taze okur (rol düşürme anında etkili olsun). */
@@ -263,6 +265,15 @@ export class ProjectsService {
       ...meta,
     });
 
+    // Faz 09: yeni proje, pull ile cihaz referansına düşer.
+    await this.syncEvents.record({
+      entityType: 'project',
+      entityId: project.id,
+      operation: 'upsert',
+      projectId: project.id,
+      actorId: actor.userId,
+    });
+
     return ProjectsService.toDto(project);
   }
 
@@ -393,6 +404,15 @@ export class ProjectsService {
       ...meta,
     });
 
+    // Arşiv/status değişimi de cihaza delta olarak taşınır.
+    await this.syncEvents.record({
+      entityType: 'project',
+      entityId: projectId,
+      operation: 'upsert',
+      projectId,
+      actorId: actor.userId,
+    });
+
     return ProjectsService.toDto(after);
   }
 
@@ -441,6 +461,14 @@ export class ProjectsService {
       entityId: site.id,
       after: { projectId, name: site.name },
       ...meta,
+    });
+
+    await this.syncEvents.record({
+      entityType: 'site',
+      entityId: site.id,
+      operation: 'upsert',
+      projectId,
+      actorId: actor.userId,
     });
 
     return {
@@ -493,6 +521,14 @@ export class ProjectsService {
       before: { name: site.name, status: site.status },
       after: { name: updated.name, status: updated.status },
       ...meta,
+    });
+
+    await this.syncEvents.record({
+      entityType: 'site',
+      entityId: siteId,
+      operation: 'upsert',
+      projectId: updated.projectId,
+      actorId: actor.userId,
     });
 
     return {

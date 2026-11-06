@@ -67,7 +67,7 @@ export async function apiGet(
 export async function apiSend(
   request: APIRequestContext,
   token: string,
-  method: 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: string,
   data?: unknown,
 ): Promise<Record<string, unknown>> {

@@ -14,6 +14,7 @@ import {
 } from '@santiyepro/contracts';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../../common/audit.service.js';
+import { SyncEventsService } from '../../common/sync-events.service.js';
 import { MediaService } from '../media/media.service.js';
 import { buildMediaUrl } from '../../common/media/signed-url.js';
 import { dateOnlyValue } from '../../common/date-utils.js';
@@ -63,6 +64,7 @@ export class DailyReportsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly mediaService: MediaService,
+    private readonly syncEvents: SyncEventsService,
   ) {}
 
   private async getActor(userId: string): Promise<Actor> {
@@ -272,6 +274,15 @@ export class DailyReportsService {
       ...meta,
     });
 
+    // Faz 09: çevrimdışı taslak akışı pull ile diğer cihazlara da görünür.
+    await this.syncEvents.record({
+      entityType: 'dailyReport',
+      entityId: report.id,
+      operation: 'upsert',
+      projectId: report.projectId,
+      actorId: actor.userId,
+    });
+
     return this.toDto(report, false);
   }
 
@@ -384,6 +395,14 @@ export class DailyReportsService {
       });
     }
 
+    await this.syncEvents.record({
+      entityType: 'dailyReport',
+      entityId: reportId,
+      operation: 'upsert',
+      projectId: after.projectId,
+      actorId: actor.userId,
+    });
+
     return this.toDto(after, false);
   }
 
@@ -417,6 +436,13 @@ export class DailyReportsService {
     });
     const after = await this.prisma.dailyReport.findUnique({ where: { id: reportId }, include: REPORT_INCLUDE });
     if (!after) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Rapor bulunamadı' });
+    await this.syncEvents.record({
+      entityType: 'dailyReport',
+      entityId: reportId,
+      operation: 'upsert',
+      projectId: after.projectId,
+      actorId: actor.userId,
+    });
     return this.toDto(after, false);
   }
 
@@ -448,6 +474,13 @@ export class DailyReportsService {
     });
     const after = await this.prisma.dailyReport.findUnique({ where: { id: reportId }, include: REPORT_INCLUDE });
     if (!after) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Rapor bulunamadı' });
+    await this.syncEvents.record({
+      entityType: 'dailyReport',
+      entityId: reportId,
+      operation: 'upsert',
+      projectId: after.projectId,
+      actorId: actor.userId,
+    });
     return this.toDto(after, false);
   }
 
@@ -480,6 +513,13 @@ export class DailyReportsService {
     });
     const after = await this.prisma.dailyReport.findUnique({ where: { id: reportId }, include: REPORT_INCLUDE });
     if (!after) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Rapor bulunamadı' });
+    await this.syncEvents.record({
+      entityType: 'dailyReport',
+      entityId: reportId,
+      operation: 'upsert',
+      projectId: after.projectId,
+      actorId: actor.userId,
+    });
     return this.toDto(after, false);
   }
 
@@ -511,6 +551,13 @@ export class DailyReportsService {
     });
     const after = await this.prisma.dailyReport.findUnique({ where: { id: reportId }, include: REPORT_INCLUDE });
     if (!after) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Rapor bulunamadı' });
+    await this.syncEvents.record({
+      entityType: 'dailyReport',
+      entityId: reportId,
+      operation: 'upsert',
+      projectId: after.projectId,
+      actorId: actor.userId,
+    });
     return this.toDto(after, false);
   }
 

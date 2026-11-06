@@ -13,6 +13,7 @@ import { DailyReportFormScreen } from '../screens/DailyReportFormScreen';
 import { AttendanceScreen } from '../screens/AttendanceScreen';
 import { StockScreen } from '../screens/StockScreen';
 import { ExpenseScreen } from '../screens/ExpenseScreen';
+import { SyncQueueScreen } from '../screens/SyncQueueScreen';
 import { RecordMenuSheet, RECORD_OPTIONS } from '../components/RecordMenuSheet';
 import { colors, touch } from '../theme/tokens';
 
@@ -32,6 +33,7 @@ export function RootTabs() {
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const tabBar = (props: BottomTabBarProps) => (
     <View style={styles.tabBarWrap}>
@@ -82,6 +84,7 @@ export function RootTabs() {
           if (option.key === 'attendance') setAttendanceOpen(true);
           if (option.key === 'stock-movement') setStockOpen(true);
           if (option.key === 'expense') setExpenseOpen(true);
+          if (option.key === 'sync-status') setSyncOpen(true);
         }}
       />
       {reportFormOpen && (
@@ -104,12 +107,17 @@ export function RootTabs() {
           <ExpenseScreen onClose={() => setExpenseOpen(false)} />
         </View>
       )}
+      {syncOpen && (
+        <View style={StyleSheet.absoluteFill} testID="sync-queue-overlay">
+          <SyncQueueScreen onClose={() => setSyncOpen(false)} />
+        </View>
+      )}
     </View>
   );
 
   return (
     <Tab.Navigator tabBar={tabBar} screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="AnaSayfa" component={HomeScreen} />
+      <Tab.Screen name="AnaSayfa">{() => <HomeScreen onOpenSyncQueue={() => setSyncOpen(true)} />}</Tab.Screen>
       <Tab.Screen name="Projeler" component={ProjectsScreen} />
       <Tab.Screen name="Gorevler" component={TasksScreen} />
       <Tab.Screen name="Profil" component={ProfileScreen} />

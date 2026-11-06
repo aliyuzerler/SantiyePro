@@ -20,6 +20,7 @@ import {
 } from '@santiyepro/contracts';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../../common/audit.service.js';
+import { SyncEventsService } from '../../common/sync-events.service.js';
 
 const PERSONNEL_INCLUDE = {
   _count: { select: { attendanceRecords: true } },
@@ -30,6 +31,7 @@ export class PersonnelService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly syncEvents: SyncEventsService,
   ) {}
 
   private static toDto(row: Prisma.PersonnelGetPayload<{ include: typeof PERSONNEL_INCLUDE }>): PersonnelDto {
@@ -124,6 +126,14 @@ export class PersonnelService {
       ...meta,
     });
 
+    // Faz 09: personel kartı çevrimdışı puantaj ekranları için pull'a girer.
+    await this.syncEvents.record({
+      entityType: 'personnel',
+      entityId: row.id,
+      operation: 'upsert',
+      actorId: actorUserId,
+    });
+
     return PersonnelService.toDto(row);
   }
 
@@ -167,6 +177,13 @@ export class PersonnelService {
       before: { fullName: current.fullName, status: current.status, employeeCode: current.employeeCode },
       after: { fullName: row.fullName, status: row.status, employeeCode: row.employeeCode },
       ...meta,
+    });
+
+    await this.syncEvents.record({
+      entityType: 'personnel',
+      entityId: row.id,
+      operation: 'upsert',
+      actorId: actorUserId,
     });
 
     return PersonnelService.toDto(row);

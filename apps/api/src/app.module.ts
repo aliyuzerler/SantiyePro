@@ -14,6 +14,7 @@ import { OrgSettingsModule } from './modules/org/org-settings.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { ExpensesModule } from './modules/expenses/expenses.module.js';
 import { ProgressClaimsModule } from './modules/progress-claims/progress-claims.module.js';
+import { SyncModule } from './modules/sync/sync.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { CommonModule } from './common/common.module.js';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard.js';
@@ -32,6 +33,10 @@ import { PermissionsGuard } from './common/auth/permissions.guard.js';
  * Faz 08: Expenses (taslak→onay/red; opsiyonel vergi; fiş eki) + ProgressClaims
  *         (sözleşme kalemleri, snapshot fiyat, zincir doğrulaması, dönem
  *         çakışma engeli, onayda dondurma, iptal politikası) — BigInt para matematiği.
+ * Faz 09: Sync — /sync/push (clientMutationId idempotent batch mutation,
+ *         accepted/rejected/conflict sonuçları, SyncMutationLog defteri) ve
+ *         /sync/pull (SyncEvent seq cursor delta, kapsam filtresi,
+ *         accessibleProjectIds ile erişim kaybı bildirimi).
  * Global guard sırası: kimlik doğrulama → izin kontrolü (deny-by-default).
  */
 @Module({
@@ -55,6 +60,7 @@ import { PermissionsGuard } from './common/auth/permissions.guard.js';
     InventoryModule,
     ExpensesModule,
     ProgressClaimsModule,
+    SyncModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

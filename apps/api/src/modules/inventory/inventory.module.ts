@@ -11,6 +11,7 @@ import { StockService } from './stock.service.js';
 @Module({
   controllers: [InventoryController, StockController],
   providers: [InventoryService, StockService],
-  exports: [InventoryService],
+  // StockService de dışa açılır: Faz 09 /sync/push stok hareketi dispatch'i için.
+  exports: [InventoryService, StockService],
 })
 export class InventoryModule {}

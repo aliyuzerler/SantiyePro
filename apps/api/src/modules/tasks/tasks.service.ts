@@ -18,6 +18,7 @@ import {
 } from '@santiyepro/contracts';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditService } from '../../common/audit.service.js';
+import { SyncEventsService } from '../../common/sync-events.service.js';
 
 /**
  * Görev yönetimi servisi (Faz 04).
@@ -60,6 +61,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly syncEvents: SyncEventsService,
   ) {}
 
   /** Kullanıcının rollerini DB'den taze okur (rol düşürme anında etkili olsun). */
@@ -320,6 +322,15 @@ export class TasksService {
       ...meta,
     });
 
+    // Faz 09: çevrimdışı cihazlar pull ile görsün (docs/09 olay günlüğü).
+    await this.syncEvents.record({
+      entityType: 'task',
+      entityId: task.id,
+      operation: 'upsert',
+      projectId: task.projectId,
+      actorId: actor.userId,
+    });
+
     return TasksService.toDto(task);
   }
 
@@ -460,6 +471,14 @@ export class TasksService {
       ...meta,
     });
 
+    await this.syncEvents.record({
+      entityType: 'task',
+      entityId: taskId,
+      operation: 'upsert',
+      projectId: after.projectId,
+      actorId: actor.userId,
+    });
+
     return TasksService.toDto(after);
   }
 
@@ -506,6 +525,14 @@ export class TasksService {
       entityId: taskId,
       after: { commentId: comment.id, taskId, title: task.title },
       ...meta,
+    });
+
+    await this.syncEvents.record({
+      entityType: 'taskComment',
+      entityId: comment.id,
+      operation: 'upsert',
+      projectId: task.projectId,
+      actorId: actor.userId,
     });
 
     return {

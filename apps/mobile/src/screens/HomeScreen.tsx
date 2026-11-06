@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { CloudOff, FileText, FolderKanban, ListChecks, Server } from 'lucide-react-native';
+import { FileText, FolderKanban, ListChecks, Server } from 'lucide-react-native';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
+import { SyncStatusBanner } from '../components/SyncStatusBanner';
 import { colors, spacing, typography } from '../theme/tokens';
 import { tokenStorage } from '../lib/secure-store';
 import { projectsApi, type ProjectDto } from '../lib/api';
+import { useSync } from '../lib/sync/sync-context';
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '@santiyepro/contracts';
 
 /**
@@ -14,9 +16,10 @@ import { PROJECT_STATUS_LABELS, type ProjectStatus } from '@santiyepro/contracts
  * bugünün görevleri ve bekleyen raporlar (Faz 04/05'te dolacak).
  * Panel gibi sabit sahte sayılar gösterilmez; veri yoksa dürüst boş durum çıkar.
  */
-export function HomeScreen() {
+export function HomeScreen({ onOpenSyncQueue }: { onOpenSyncQueue?: () => void } = {}) {
   const [projects, setProjects] = useState<ProjectDto[] | null>(null);
   const [projectsError, setProjectsError] = useState<string>();
+  const { snapshot } = useSync();
 
   const loadProjects = useCallback(async () => {
     const token = await tokenStorage.loadAccessToken();
@@ -44,9 +47,8 @@ export function HomeScreen() {
           <Text style={styles.brand}>ŞantiyePro</Text>
           <Text style={styles.brandNote}>PROJECT CONTROL</Text>
         </View>
-        <View style={styles.syncNote} accessibilityLabel="Senkronizasyon durumu: Faz 09'da eklenecek">
-          <CloudOff size={14} color={colors.text.secondary} />
-          <Text style={styles.syncText}>Senkron göstergesi Faz 09'da</Text>
+        <View style={styles.syncNote}>
+          <SyncStatusBanner snapshot={snapshot} onPress={onOpenSyncQueue} />
         </View>
       </View>
 
