@@ -12,6 +12,7 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { DailyReportFormScreen } from '../screens/DailyReportFormScreen';
 import { AttendanceScreen } from '../screens/AttendanceScreen';
 import { StockScreen } from '../screens/StockScreen';
+import { ExpenseScreen } from '../screens/ExpenseScreen';
 import { RecordMenuSheet, RECORD_OPTIONS } from '../components/RecordMenuSheet';
 import { colors, touch } from '../theme/tokens';
 
@@ -30,6 +31,7 @@ export function RootTabs() {
   const [reportFormOpen, setReportFormOpen] = useState(false);
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
+  const [expenseOpen, setExpenseOpen] = useState(false);
 
   const tabBar = (props: BottomTabBarProps) => (
     <View style={styles.tabBarWrap}>
@@ -79,6 +81,7 @@ export function RootTabs() {
           if (option.key === 'daily-report') setReportFormOpen(true);
           if (option.key === 'attendance') setAttendanceOpen(true);
           if (option.key === 'stock-movement') setStockOpen(true);
+          if (option.key === 'expense') setExpenseOpen(true);
         }}
       />
       {reportFormOpen && (
@@ -94,6 +97,11 @@ export function RootTabs() {
       {stockOpen && (
         <View style={StyleSheet.absoluteFill} testID="stock-screen-overlay">
           <StockScreen onClose={() => setStockOpen(false)} />
+        </View>
+      )}
+      {expenseOpen && (
+        <View style={StyleSheet.absoluteFill} testID="expense-screen-overlay">
+          <ExpenseScreen onClose={() => setExpenseOpen(false)} />
         </View>
       )}
     </View>

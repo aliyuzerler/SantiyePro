@@ -318,6 +318,8 @@ describe('Media (e2e)', () => {
   // ---------- 5) Boyut sınırı ----------
 
   it('akış sırasında boyut aşımı → 413; diskte dosya birikmez', async () => {
+    // Not: erken 413 akış abortu, istemcinin gövdeyi boşaltması gerektirir;
+    // yavaş ortamlarda yanıt 30 sn'yi aşabildiğinden bu test 120 sn timeout kullanır.
     const urlRes = await requestUploadUrl(chiefToken, {
       filename: 'dev.jpg',
       mimeType: 'image/jpeg',
@@ -335,7 +337,7 @@ describe('Media (e2e)', () => {
       .set('Content-Type', 'application/octet-stream')
       .send(big)
       .expect(413);
-  });
+  }, 120000);
 
   // ---------- 6) EXIF GPS soyulması ----------
 

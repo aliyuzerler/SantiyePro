@@ -145,6 +145,11 @@ export class MediaService {
         if (total > MEDIA_MAX_SIZE_BYTES) {
           req.removeAllListeners('data');
           req.removeAllListeners('end');
+          // Erken 413: istemci gövdeyi tamamlamadan yanıt döner. Gövde
+          // tüketilmezse istemcinin yazma tarafı kilitlenebilir (backpressure);
+          // akışı boşalt (resume) — diskte hiçbir şey birikmez.
+          req.resume();
+          req.on('error', () => undefined);
           reject(new PayloadTooLargeException({
             code: 'VALIDATION_ERROR',
             message: `Dosya en fazla ${Math.floor(MEDIA_MAX_SIZE_BYTES / (1024 * 1024))} MB olabilir`,

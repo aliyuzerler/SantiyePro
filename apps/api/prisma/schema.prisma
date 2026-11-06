@@ -93,6 +93,12 @@ model User {
   createdWarehouses   Warehouse[]        @relation("WarehouseCreator")
   createdMaterials    Material[]         @relation("MaterialCreator")
   stockMovements      StockMovement[]    @relation("StockMovementCreator")
+  expenseCategories   ExpenseCategory[]  @relation("ExpenseCategoryCreator")
+  createdExpenses     Expense[]          @relation("ExpenseCreator")
+  approvedExpenses    Expense[]          @relation("ExpenseApprover")
+  createdContractItems ContractItem[]    @relation("ContractItemCreator")
+  createdClaims       ProgressClaim[]    @relation("ProgressClaimCreator")
+  approvedClaims      ProgressClaim[]    @relation("ProgressClaimApprover")
 
   @@index([status])
 }
@@ -126,6 +132,9 @@ model Project {
   attendanceRecords AttendanceRecord[]
   warehouses Warehouse[]
   stockMovements StockMovement[]
+  expenses       Expense[]
+  contractItems  ContractItem[]
+  progressClaims ProgressClaim[]
 
   @@index([status])
   @@index([name])
@@ -348,6 +357,7 @@ model MediaFile {
 
   uploader User    @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
   reports  DailyReportMedia[]
+  expenseReceipts Expense[]
 }
 
 
@@ -649,4 +659,168 @@ model StockMovement {
   @@index([projectId, occurredAt])
   @@index([warehouseId, occurredAt])
   @@index([type, occurredAt])
+}
+
+/// Gider kategorisi (Faz 08) — kurum genelinde; ad benzersiz. Pasife kategori
+/// yeni giderde seçilemez (mevcut giderler etkilenmez).
+model ExpenseCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  isActive    Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User      @relation("ExpenseCategoryCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  expenses  Expense[]
+
+  @@index([isActive])
+}
+
+/// Gider (Faz 08) — proje kapsamlı; DRAFT'ta düzenlenebilir/silinebilir,
+/// PENDING onay/rede gider, APPROVED/REJECTED değiştirilemez (append-only
+/// iş kayıtları felsefesi). Vergi oranı OPSİYONELDİR: verilmezse hiçbir
+/// varsayılan oran uygulanmaz (uydurma yasal hesap yasak).
+/// amount DECIMAL(18,2); taxRate DECIMAL(5,2); currency 3 harf (TRY varsayılan).
+model Expense {
+  id              String        @id @default(cuid())
+  projectId       String
+  categoryId      String
+  vendorName      String?
+  description     String
+  amount          Decimal       @db.Decimal(18, 2)
+  currency        String        @default("TRY")
+  taxRate         Decimal?      @db.Decimal(5, 2)
+  expenseDate     DateTime      @db.Date
+  status          ExpenseStatus @default(DRAFT)
+  /// Fiş/fatura eki — Faz 05 özel medya deposundan (receiptMedia).
+  receiptMediaId  String?
+  submittedAt     DateTime?
+  approvedById    String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  createdById     String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  /// Taslak gider sert silinmez; soft delete (audit izi korunur).
+  deletedAt       DateTime?
+
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  receiptMedia MediaFile?     @relation(fields: [receiptMediaId], references: [id], onDelete: SetNull)
+  approvedBy  User?           @relation("ExpenseApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  createdBy   User            @relation("ExpenseCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([projectId, expenseDate])
+  @@index([projectId, status])
+  @@index([categoryId])
+  @@index([status, expenseDate])
+}
+
+enum ExpenseStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Sözleşme kalemi (Faz 08) — proje kapsamlı hakediş kalemi. unitPrice
+/// değiştirilebilir; ancak hakediş satırı SNAPSHOT sakladığı için eski
+/// hakedişler etkilenmez (docs/04). code verilirse proje içinde benzersiz.
+model ContractItem {
+  id               String   @id @default(cuid())
+  projectId        String
+  /// Proje içinde benzersiz kalem kodu (verilirse) — nullable unique.
+  code             String?
+  description      String
+  unit             String
+  /// Sözleşme miktarı DECIMAL(18,3) — m²/m³/ton gibi 3 ondalık hassasiyet.
+  contractQuantity Decimal  @db.Decimal(18, 3)
+  /// Birim fiyat DECIMAL(18,4); hakedişte snapshot alınır.
+  unitPrice        Decimal  @db.Decimal(18, 4)
+  currency         String   @default("TRY")
+  sortOrder        Int      @default(0)
+  createdById      String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project     Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User                @relation("ContractItemCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  claimLines  ProgressClaimLine[]
+
+  @@unique([projectId, code])
+  @@index([projectId, sortOrder])
+}
+
+/// Hakediş (Faz 08) — dönemsel iş tamamlama beyanı. claimNo proje içinde
+/// benzersiz; dönemler (REJECTED/CANCELLED hariç) üst üste binemez.
+/// Onaylandıktan sonra satırlar ve toplamlar DONDUZULUR: fiyat değişimi
+/// snapshot sayesinde eski hakedişi etkilemez; düzeltme ancak yeni (mahsup)
+/// hakedişle yapılır. İptal yalnızca DRAFT/PENDING'de mümkündür.
+model ProgressClaim {
+  id              String              @id @default(cuid())
+  projectId       String
+  claimNo         Int
+  periodStart     DateTime            @db.Date
+  periodEnd       DateTime            @db.Date
+  status          ProgressClaimStatus @default(DRAFT)
+  /// Zincirden gelen önceki hakediş(ler)in kümülatif toplamı (DECIMAL(18,2)).
+  previousTotal   Decimal             @default(0) @db.Decimal(18, 2)
+  /// Brüt = Σ dönem tutarı (DECIMAL(18,2)).
+  grossTotal      Decimal             @default(0) @db.Decimal(18, 2)
+  /// Kümülatif = previousTotal + grossTotal (DECIMAL(18,2)).
+  cumulativeTotal Decimal             @default(0) @db.Decimal(18, 2)
+  /// Kesinti toplamı — brütü aşamaz; oranı uydurulmaz, yapılandırılabilir alan.
+  deductionTotal  Decimal             @default(0) @db.Decimal(18, 2)
+  /// Net = grossTotal − deductionTotal (DECIMAL(18,2)).
+  netTotal        Decimal             @default(0) @db.Decimal(18, 2)
+  notes           String?
+  submittedAt     DateTime?
+  approvedById    String?
+  approvedAt      DateTime?
+  rejectionReason String?
+  cancelReason    String?
+  createdById     String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deletedAt       DateTime?
+
+  project   Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lines     ProgressClaimLine[]
+  approvedBy User?              @relation("ProgressClaimApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  createdBy User                @relation("ProgressClaimCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, claimNo])
+  @@index([projectId, periodStart])
+  @@index([projectId, status])
+  @@index([status, periodStart])
+}
+
+enum ProgressClaimStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// Hakediş satırı (Faz 08) — bir kalem × bir hakediş. unitPriceSnapshot
+/// oluşturma anındaki kalem fiyatıdır: sözleşme fiyatı sonradan değişse
+/// bile bu satır değişmez (docs/04 snapshot kuralı). Miktarlar DECIMAL(18,3),
+/// tutarlar DECIMAL(18,2) — yarım yukarı yuvarlama (contracts/finance.ts).
+model ProgressClaimLine {
+  id               String   @id @default(cuid())
+  progressClaimId  String
+  contractItemId   String
+  previousQuantity Decimal  @db.Decimal(18, 3)
+  periodQuantity   Decimal  @db.Decimal(18, 3)
+  cumulativeQuantity Decimal @db.Decimal(18, 3)
+  unitPriceSnapshot Decimal @db.Decimal(18, 4)
+  lineAmount       Decimal  @db.Decimal(18, 2)
+
+  claim        ProgressClaim @relation(fields: [progressClaimId], references: [id], onDelete: Cascade)
+  contractItem ContractItem  @relation(fields: [contractItemId], references: [id], onDelete: Restrict)
+
+  @@unique([progressClaimId, contractItemId])
+  @@index([contractItemId])
 }

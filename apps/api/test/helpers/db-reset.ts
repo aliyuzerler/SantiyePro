@@ -6,6 +6,11 @@
 import type { PrismaClient } from '@prisma/client';
 
 export async function resetTransactionalData(prisma: PrismaClient): Promise<void> {
+  await prisma.progressClaimLine.deleteMany();
+  await prisma.progressClaim.deleteMany();
+  await prisma.contractItem.deleteMany();
+  await prisma.expense.deleteMany();
+  await prisma.expenseCategory.deleteMany();
   await prisma.stockMovement.deleteMany();
   await prisma.stockBalance.deleteMany();
   await prisma.material.deleteMany();

@@ -60,6 +60,7 @@ export * from './media.js';
 export * from './dailyreports.js';
 export * from './attendance.js';
 export * from './inventory.js';
+export * from './finance.js';
 
 // ---------- Ortak alanlar ----------
 

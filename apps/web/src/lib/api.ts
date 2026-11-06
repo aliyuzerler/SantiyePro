@@ -31,7 +31,7 @@ export class ApiError extends Error {
 }
 
 export interface ApiRequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   token?: string | null;
   signal?: AbortSignal;
@@ -262,6 +262,144 @@ export const tasksApi = {
   addComment: (token: string, id: string, body: string) =>
     apiFetch<TaskCommentDto>(`/tasks/${id}/comments`, { method: 'POST', body: { body }, token }),
 };
+
+
+// ---------- Gider ve hakediş (Faz 08) ----------
+
+import type {
+  ClaimCalculationDto,
+  ContractItemDto,
+  ExpenseCategoryDto,
+  ExpenseDto,
+  ProgressClaimDto,
+} from '@santiyepro/contracts';
+export type {
+  ClaimCalculationDto,
+  ContractItemDto,
+  ExpenseCategoryDto,
+  ExpenseDto,
+  ProgressClaimDto,
+};
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export interface ExpenseListParams {
+  page?: number;
+  pageSize?: number;
+  projectId?: string;
+  categoryId?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  sort?: 'expenseDate' | 'createdAt' | 'amount';
+  order?: 'asc' | 'desc';
+}
+
+export interface SaveExpenseInput {
+  projectId: string;
+  categoryId: string;
+  vendorName?: string;
+  description: string;
+  amount: string;
+  currency?: string;
+  taxRate?: string | null;
+  expenseDate: string;
+  receiptMediaId?: string | null;
+}
+
+export interface ClaimLineInput {
+  contractItemId: string;
+  previousQuantity: string;
+  periodQuantity: string;
+}
+
+export interface SaveClaimInput {
+  projectId: string;
+  claimNo: number;
+  periodStart: string;
+  periodEnd: string;
+  notes?: string;
+  deductionTotal?: string;
+  lines: ClaimLineInput[];
+}
+
+export const financeApi = {
+  // Kategoriler
+  listCategories: (token: string, params: { isActive?: 'true' | 'false' } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.isActive) qs.set('isActive', params.isActive);
+    const query = qs.toString();
+    return apiFetch<{ data: ExpenseCategoryDto[] }>(`/expenses/categories${query ? `?${query}` : ''}`, { token });
+  },
+  createCategory: (token: string, name: string) =>
+    apiFetch<ExpenseCategoryDto>('/expenses/categories', { method: 'POST', body: { name }, token }),
+
+  // Giderler
+  listExpenses: (token: string, params: ExpenseListParams) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '') qs.set(k, String(v));
+    return apiFetch<PaginatedResponse<ExpenseDto>>(`/expenses?${qs.toString()}`, { token });
+  },
+  createExpense: (token: string, input: SaveExpenseInput) =>
+    apiFetch<ExpenseDto>('/expenses', { method: 'POST', body: input, token }),
+  updateExpense: (token: string, id: string, input: Partial<SaveExpenseInput>) =>
+    apiFetch<ExpenseDto>(`/expenses/${id}`, { method: 'PATCH', body: input, token }),
+  deleteExpense: (token: string, id: string) =>
+    apiFetch<{ id: string; deleted: true }>(`/expenses/${id}`, { method: 'DELETE', token }),
+  submitExpense: (token: string, id: string) =>
+    apiFetch<ExpenseDto>(`/expenses/${id}/submit`, { method: 'POST', token }),
+  approveExpense: (token: string, id: string) =>
+    apiFetch<ExpenseDto>(`/expenses/${id}/approve`, { method: 'POST', token }),
+  rejectExpense: (token: string, id: string, reason: string) =>
+    apiFetch<ExpenseDto>(`/expenses/${id}/reject`, { method: 'POST', body: { reason }, token }),
+
+  // Sözleşme kalemleri
+  listContractItems: (token: string, projectId: string, params: { page?: number; pageSize?: number } = {}) => {
+    const qs = new URLSearchParams({ projectId });
+    if (params.page) qs.set('page', String(params.page));
+    if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+    return apiFetch<PaginatedResponse<ContractItemDto>>(`/progress-claims/contract-items?${qs.toString()}`, { token });
+  },
+  createContractItem: (
+    token: string,
+    input: { projectId: string; code?: string; description: string; unit: string; contractQuantity: string; unitPrice: string; currency?: string; sortOrder?: number },
+  ) => apiFetch<ContractItemDto>('/progress-claims/contract-items', { method: 'POST', body: input, token }),
+  updateContractItem: (token: string, id: string, input: { unitPrice?: string; description?: string; contractQuantity?: string }) =>
+    apiFetch<ContractItemDto>(`/progress-claims/contract-items/${id}`, { method: 'PATCH', body: input, token }),
+
+  // Hakedişler
+  listClaims: (token: string, projectId: string, params: { status?: string; page?: number; pageSize?: number } = {}) => {
+    const qs = new URLSearchParams({ projectId });
+    if (params.status) qs.set('status', params.status);
+    if (params.page) qs.set('page', String(params.page));
+    if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+    return apiFetch<PaginatedResponse<ProgressClaimDto>>(`/progress-claims?${qs.toString()}`, { token });
+  },
+  getClaim: (token: string, id: string) =>
+    apiFetch<ProgressClaimDto>(`/progress-claims/${id}`, { token }),
+  createClaim: (token: string, input: SaveClaimInput) =>
+    apiFetch<ProgressClaimDto>('/progress-claims', { method: 'POST', body: input, token }),
+  replaceClaimLines: (token: string, id: string, lines: ClaimLineInput[]) =>
+    apiFetch<ProgressClaimDto>(`/progress-claims/${id}/lines`, { method: 'PUT', body: { lines }, token }),
+  deleteClaim: (token: string, id: string) =>
+    apiFetch<{ id: string; deleted: true }>(`/progress-claims/${id}`, { method: 'DELETE', token }),
+  calculateClaim: (token: string, id: string) =>
+    apiFetch<ClaimCalculationDto>(`/progress-claims/${id}/calculate`, { method: 'POST', token }),
+  submitClaim: (token: string, id: string) =>
+    apiFetch<ProgressClaimDto>(`/progress-claims/${id}/submit`, { method: 'POST', token }),
+  approveClaim: (token: string, id: string) =>
+    apiFetch<ProgressClaimDto>(`/progress-claims/${id}/approve`, { method: 'POST', token }),
+  rejectClaim: (token: string, id: string, reason: string) =>
+    apiFetch<ProgressClaimDto>(`/progress-claims/${id}/reject`, { method: 'POST', body: { reason }, token }),
+  cancelClaim: (token: string, id: string, reason: string) =>
+    apiFetch<ProgressClaimDto>(`/progress-claims/${id}/cancel`, { method: 'POST', body: { reason }, token }),
+};
+
+// ---------- Hakediş uçları sonu ----------
 
 // ---------- Günlük raporlar ve medya (Faz 05) ----------
 

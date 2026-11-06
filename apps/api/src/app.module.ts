@@ -12,6 +12,8 @@ import { PersonnelModule } from './modules/personnel/personnel.module.js';
 import { AttendanceModule } from './modules/attendance/attendance.module.js';
 import { OrgSettingsModule } from './modules/org/org-settings.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
+import { ExpensesModule } from './modules/expenses/expenses.module.js';
+import { ProgressClaimsModule } from './modules/progress-claims/progress-claims.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { CommonModule } from './common/common.module.js';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard.js';
@@ -27,6 +29,9 @@ import { PermissionsGuard } from './common/auth/permissions.guard.js';
  *         toplu önizleme/onay, özet) + OrgSettings (özel devam durumları).
  * Faz 07: Inventory — depo/malzeme kataloğu + append-only stok hareketleri
  *         (transfer tek transaction, koşullu atomik bakiye UPDATE, ters kayıt).
+ * Faz 08: Expenses (taslak→onay/red; opsiyonel vergi; fiş eki) + ProgressClaims
+ *         (sözleşme kalemleri, snapshot fiyat, zincir doğrulaması, dönem
+ *         çakışma engeli, onayda dondurma, iptal politikası) — BigInt para matematiği.
  * Global guard sırası: kimlik doğrulama → izin kontrolü (deny-by-default).
  */
 @Module({
@@ -48,6 +53,8 @@ import { PermissionsGuard } from './common/auth/permissions.guard.js';
     AttendanceModule,
     OrgSettingsModule,
     InventoryModule,
+    ExpensesModule,
+    ProgressClaimsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

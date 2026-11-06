@@ -132,6 +132,40 @@ export interface ProjectListParams {
   order?: 'asc' | 'desc';
 }
 
+
+// ---------- Gider (Faz 08) ----------
+
+import type { ExpenseCategoryDto, ExpenseDto } from '@santiyepro/contracts';
+export type { ExpenseCategoryDto, ExpenseDto };
+
+export interface CreateExpenseInput {
+  projectId: string;
+  categoryId: string;
+  vendorName?: string;
+  description: string;
+  amount: string;
+  currency?: string;
+  taxRate?: string | null;
+  expenseDate: string;
+  clientMutationId?: string;
+}
+
+export interface ExpenseListResponse {
+  data: ExpenseDto[];
+  meta: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+export const financeApi = {
+  listCategories: (token: string) =>
+    request<{ data: ExpenseCategoryDto[] }>('/expenses/categories', { token }),
+  createExpense: (token: string, input: CreateExpenseInput) =>
+    request<ExpenseDto>('/expenses', { method: 'POST', body: input, token }),
+  listExpenses: (token: string, projectId: string) =>
+    request<ExpenseListResponse>(`/expenses?projectId=${encodeURIComponent(projectId)}&pageSize=20`, { token }),
+};
+
+// ---------- Gider uçları sonu ----------
+
 export const projectsApi = {
   /** Kapsamlı proje listesi — sunucu yalnızca erişim yetkisi olan projeleri döner. */
   list: async (token: string, params: ProjectListParams = {}): Promise<ProjectsListResponse> => {

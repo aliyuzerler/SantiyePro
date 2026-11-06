@@ -57,7 +57,7 @@ export const RECORD_OPTIONS: RecordOption[] = [
   { key: 'daily-report', label: 'Günlük rapor', phaseNote: 'Faz 05 ile aktif', enabled: true },
   { key: 'attendance', label: 'Puantaj', phaseNote: 'Satır bazlı hızlı işaretleme', enabled: true },
   { key: 'stock-movement', label: 'Malzeme hareketi', phaseNote: 'Giriş/çıkış/transfer/iade/düzeltme', enabled: true },
-  { key: 'expense', label: 'Gider', phaseNote: 'Faz 08 ile aktif', enabled: false },
+  { key: 'expense', label: 'Gider', phaseNote: 'Hızlı kayıt — çevrimdışı kuyruk', enabled: true },
   { key: 'photo-progress', label: 'Fotoğraf / ilerleme', phaseNote: 'Faz 05 ile aktif', enabled: false },
 ];
 

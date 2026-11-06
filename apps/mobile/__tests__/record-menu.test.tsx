@@ -23,9 +23,12 @@ describe('RecordMenuSheet (+ Kayıt menüsü)', () => {
     // Faz 07: malzeme hareketi de aktif (giriş/çıkış/transfer/iade/düzeltme)
     const stock = screen.getByLabelText('Malzeme hareketi');
     expect(stock.props.accessibilityState).toMatchObject({ disabled: false });
+    // Faz 08: gider de aktif (hızlı kayıt — çevrimdışı kuyruk); aktif seçenekte etiket yalnızca addır
+    const expense = screen.getByLabelText('Gider');
+    expect(expense.props.accessibilityState).toMatchObject({ disabled: false });
     // Sonraki fazlar hâlâ devre dışı
-    const expense = screen.getByLabelText('Gider (Faz 08 ile aktif)');
-    expect(expense.props.accessibilityState).toMatchObject({ disabled: true });
+    const photo = screen.getByLabelText('Fotoğraf / ilerleme (Faz 05 ile aktif)');
+    expect(photo.props.accessibilityState).toMatchObject({ disabled: true });
   });
 
   it('kapatma aksiyonu çalışır', async () => {
