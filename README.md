@@ -63,6 +63,44 @@
 - Kapsamlı liste: FIRM_ADMIN tümünü, diğerleri yalnızca üye olduğu projeleri görür (IDOR → 404).
 - Listede sayfalama, arama, durum filtresi ve sıralama; mobilde sekmeli detay.
 
+### Görevler (Faz 04)
+
+| Görev Listesi (filtre + arama) | Görev Detayı — durum geçmişi ve yorumlar |
+| --- | --- |
+| ![Görev listesi](docs/screenshots/faz04-panel-gorevler.png) | ![Görev detayı](docs/screenshots/faz04-panel-gorev-detay.png) |
+
+### Günlük Raporlar ve Medya (Faz 05)
+
+| Rapor Listesi | Rapor Detayı — revizyon geçmişi ve medya galerisi |
+| --- | --- |
+| ![Rapor listesi](docs/screenshots/faz05-panel-raporlar.png) | ![Rapor detayı](docs/screenshots/faz05-panel-rapor-detay.png) |
+
+### Personel ve Puantaj (Faz 06)
+
+| Personel Yönetimi | Puantaj Tablosu | Toplu İşaretleme Önizlemesi |
+| --- | --- | --- |
+| ![Personel](docs/screenshots/faz06-panel-personel.png) | ![Puantaj](docs/screenshots/faz06-panel-puantaj.png) | ![Toplu önizleme](docs/screenshots/faz06-panel-toplu-onizleme.png) |
+
+### Depo, Malzeme ve Stok (Faz 07)
+
+| Depolar | Stok Kartları (bakiye + kritik stok) |
+| --- | --- |
+| ![Depolar](docs/screenshots/phase-07-depo-depolar.png) | ![Stok kartları](docs/screenshots/phase-07-depo-stok-kartlari.png) |
+
+| Stok Hareketleri (append-only) | Ters Kayıt akışı |
+| --- | --- |
+| ![Hareketler](docs/screenshots/phase-07-depo-hareketler.png) | ![Ters kayıt](docs/screenshots/phase-07-depo-ters-kayit.png) |
+
+### Gider ve Hakediş (Faz 08)
+
+| Giderler — taslak, sağa hizalı tutarlar | Giderler — onay akışı |
+| --- | --- |
+| ![Giderler taslak](docs/screenshots/phase-08-giderler-taslak.png) | ![Giderler onaylı](docs/screenshots/phase-08-giderler-onayli.png) |
+
+| Hakedişler — dönem, kesinti ve net tutar |
+| --- |
+| ![Hakedişler](docs/screenshots/phase-08-hakedisler.png) |
+
 ## 🧱 Mimari
 
 ```text
@@ -100,6 +138,8 @@ Geliştirme `prompts/README.md` içindeki faz sırasına göre yürür; her faz 
 | 04 | Görevler | ✅ Tamamlandı |
 | 05 | Günlük raporlar ve medya | ✅ Tamamlandı |
 | 06 | Personel ve puantaj | ✅ Tamamlandı |
+| 07 | Depo, malzeme ve stok hareketleri (append-only, transfer atomik, ters kayıt) | ✅ Tamamlandı |
+| 08 | Gider ve hakediş (onay akışı, fiyat snapshot'ı, net/kesinti, mobil gider kuyruğu) | ✅ Tamamlandı |
 | 07 | Depo / stok | ⬜ |
 | 08 | Giderler ve hakedişler | ⬜ |
 | 09 | Çevrimdışı senkronizasyon | ⬜ |
@@ -159,16 +199,16 @@ kapanmadan **gerçek ortamda** koşar — gerçek UI girişi, menüdeki 11 modü
 mobil drawer akışı ve fazın kendi kritik akışı (gerçek mock'suz API + PostgreSQL).
 Ayrıntılar: [`docs/process/canli-test-standardi.md`](docs/process/canli-test-standardi.md).
 
-**Mevcut test envanteri (Faz 06 itibarıyla — 273 test + canlı E2E):**
+**Mevcut test envanteri (Faz 08 itibarıyla — 407 test + 21 canlı Playwright koşusu):**
 
 | Paket | Araç | Kapsam |
 | --- | --- | --- |
-| `packages/contracts` | Vitest | Token paritesi + görev/rapor durum makineleri, gecikme, izin matrisi, medya allowlist, **puantaj sözleşmeleri** (37 test) |
-| `apps/api` | Vitest | Health + auth birim + medya güvenliği (EXIF strip, magic sniff, imzalı URL) (17 test) |
-| `apps/api` e2e | Vitest + gerçek PostgreSQL | auth 17 + görev 21 + günlük rapor 11 + medya 12 + proje 16 + **puantaj 23** + health 5 = 105 e2e |
-| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI, oturum, kullanıcı, proje, görev, rapor listesi/detay/galeri (50 test) |
-| `apps/mobile` | Jest + RNTL | UI, oturum, kabuk, proje, görev, rapor formu, medya kuyruğu, **puantaj ekranı + çevrimdışı puantaj kuyruğu** (64 test) |
-| `apps/web-e2e` | **Playwright (canlı)** | API sağlık, kabuk + drawer, görev, rapor ve **puantaj kritik akışları** (18 koşu) |
+| `packages/contracts` | Vitest | Token paritesi, durum makineleri, izin matrisi, medya allowlist, **finans matematiği: para/odak aritmetiği (BigInt, 2 ondalık HALF_UP), hakediş satır formülü** (83 test) |
+| `apps/api` | Vitest | Health + auth birim + medya güvenliği (EXIF strip, magic sniff, imzalı URL, erken-abort) (17 test) |
+| `apps/api` e2e | Vitest + gerçek PostgreSQL | auth 17 + görev 21 + günlük rapor 11 + medya 12 + proje 16 + puantaj 23 + **stok 21 + gider 16 + hakediş 16** + health 5 = 158 e2e |
+| `apps/web` | Vitest + Testing Library | Token CSS paritesi, UI, oturum, kullanıcı, proje, görev, rapor, stok, **gider/hakediş biçimlendirme ve durum yardımcıları** (64 test) |
+| `apps/mobile` | Jest + RNTL | UI, oturum, kabuk, proje, görev, rapor formu, medya kuyruğu, puantaj ekranı, **stok kuyruğu + gider ekranı ve çevrimdışı gider kuyruğu** (85 test) |
+| `apps/web-e2e` | **Playwright (canlı)** | API sağlık, kabuk + drawer, görev, rapor, puantaj, **stok ve gider/hakediş kritik akışları** (21 koşu; mobil projede 17 kritik-akış spesi tasarım gereği atlanır) |
 
 Yerel tam yığın doğrulama (Docker'sız):
 
